@@ -26,7 +26,7 @@ Shop-Univalle/
 ├── frontend/                # Aplicación web
 │
 ├── services/
-│   └── catalog-service/     # Microservicio de catálogo (otros catalogos en desarrollo)
+│   └── catalog-service/     # Microservicio de catálogo (otros servicios en desarrollo)
 │
 ├── compose.yaml             # Orquestación de contenedores
 │
@@ -41,7 +41,7 @@ Shop-Univalle/
 |---|---|---|
 | Frontend | Interfaz de usuario de la aplicación. | React, TypeScript y Vite |
 | API Gateway | Punto de entrada y gestión de solicitudes hacia los servicios. | NestJS |
-| Catalog Service | Microservicio encargado de las operaciones del catálogo. (otros catalogos en desarrollo) | NestJS |
+| Catalog Service | Microservicio encargado de las operaciones del catálogo. (otros servicios en desarrollo) | NestJS |
 | Compose | Configuración para la ejecución de los componentes mediante contenedores. | Docker Compose |
 
 ## 🛠️ Tecnologías utilizadas
