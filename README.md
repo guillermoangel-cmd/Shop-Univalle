@@ -2,9 +2,7 @@
 
 **Plataforma de comercio electrónico de la comunidad universitaria de la Universidad del Valle.**
 
-Shop-Univalle es un proyecto de desarrollo de software que busca construir una plataforma de comercio electrónico mediante una arquitectura basada en microservicios, permitiendo organizar, administrar y gestionar los diferentes componentes de la aplicación de manera independiente.
-
-Actualmente, el proyecto cuenta con una aplicación frontend, un API Gateway y un servicio de catálogo de productos.
+Shop-Univalle es un proyecto de desarrollo de software que busca construir una plataforma de comercio electrónico mediante una arquitectura basada en microservicios y arquitectura hexagonal, permitiendo organizar, administrar y gestionar los diferentes componentes de la aplicación de manera independiente.
 
 ---
 
@@ -16,17 +14,23 @@ El proyecto se encuentra en fase de construcción e integración de sus componen
 
 ## 🏗️ Arquitectura del proyecto
 
-El sistema utiliza una arquitectura de microservicios, separando las responsabilidades de la aplicación en diferentes componentes.
+El sistema utiliza una arquitectura de microservicios y hexagonal, separando las responsabilidades de la aplicación en diferentes componentes.
 
 ```text
 Shop-Univalle/
 │
 ├── api-gateway/             # Punto de entrada de las solicitudes
+├── docs/                    # Documentacion
 │
 ├── frontend/                # Aplicación web
 │
 ├── services/
-│   └── catalog-service/     # Microservicio de catálogo (otros servicios en desarrollo)
+│   ├── catalog-service/     # Productos, API REST y MongoDB
+│   ├── user-service/        # Registro y persistencia de usuarios
+│   ├── orders-service/      # Pendiente
+│   ├── payments-service/    # Pendiente
+│   ├── search-service/      # Pendiente
+│   └── recommendation-service/ # Pendiente
 │
 ├── compose.yaml             # Orquestación de contenedores
 │
@@ -41,8 +45,10 @@ Shop-Univalle/
 |---|---|---|
 | Frontend | Interfaz de usuario de la aplicación. | React, TypeScript y Vite |
 | API Gateway | Punto de entrada y gestión de solicitudes hacia los servicios. | NestJS |
-| Catalog Service | Microservicio encargado de las operaciones del catálogo. (otros servicios en desarrollo) | NestJS |
-| Compose | Configuración para la ejecución de los componentes mediante contenedores. | Docker Compose |
+| Catalog Service | Consulta y creación de productos con adaptador Mongo. | NestJS, MongoDB |
+| User Service | Registro con hash de contraseña y filtro de dominios configurables. | NestJS, MongoDB |
+| Orders, Payments, Search, Recommendations | Componentes planificados, todavía sin implementación. | Pendiente |
+| Compose | Frontend, gateway, servicios activos y una BD por servicio. | Docker Compose |
 
 ## 🛠️ Tecnologías utilizadas
 
@@ -119,6 +125,15 @@ cd ../services/catalog-service
 npm install
 ```
 
+**User Service**
+
+```bash
+cd ../user-service
+npm ci
+```
+
+Define un `JWT_SECRET` aleatorio (al menos 32 caracteres) en `.env`. Después de levantar Compose, carga los correos autorizados ficticios con `docker compose exec user-service npm run seed:authorized-emails`. Consulta [services/user-service/README.md](services/user-service/README.md) para el flujo de activación y login.
+
 ## ▶️ Ejecución en desarrollo
 
 Cada componente puede ejecutarse individualmente desde su directorio.
@@ -137,6 +152,13 @@ cd api-gateway
 npm run start:dev
 ```
 
+**User Service**
+
+```bash
+cd services/user-service
+npm run start:dev
+```
+
 **Catalog Service**
 
 ```bash
@@ -145,6 +167,8 @@ npm run start:dev
 ```
 
 Ejecuta cada componente en una terminal independiente. Consulta los archivos `package.json` y la documentación interna de cada servicio para verificar sus scripts, puertos y variables de entorno.
+
+En modo Vite, el frontend reenvía `/api` a `http://localhost:3000`; inicia el gateway y configura las URL/puertos de catálogo y usuarios para tu entorno local.
 
 ## 🐳 Ejecución con Docker
 
@@ -168,7 +192,11 @@ Para detener los servicios:
 docker compose down
 ```
 
-La ejecución requiere tener Docker Desktop instalado y configurado correctamente.
+La ejecución requiere tener Docker Desktop instalado y configurado correctamente. Copia `.env.example` a `.env` y define `UNIVERSITY_EMAIL_DOMAINS` con los dominios oficiales confirmados por la Universidad antes de habilitar registros.
+
+## Diseño y seguimiento
+
+La descripción inicial de arquitectura, límites y pendientes está en [docs/SDD.md](docs/SDD.md). El tablero Jira del equipo debe enlazarse allí cuando esté disponible; cada servicio pendiente debe convertirse en épica/tareas antes de implementarlo.
 
 ## 🌿 Flujo de trabajo con Git
 

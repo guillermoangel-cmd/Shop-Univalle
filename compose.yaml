@@ -1,0 +1,69 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - api-gateway
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      CATALOG_SERVICE_URL: ${CATALOG_SERVICE_URL:-http://catalog-service:3000}
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service:3000}
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    depends_on:
+      - catalog-service
+      - user-service
+
+  catalog-service:
+    build:
+      context: ./services/catalog-service
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGODB_URI: ${CATALOG_MONGODB_URI:-mongodb://catalog-mongo:27017/catalog}
+    depends_on:
+      catalog-mongo:
+        condition: service_healthy
+
+  catalog-mongo:
+    image: mongo:8
+    volumes:
+      - catalog-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "localhost:27017/test", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  user-service:
+    build:
+      context: ./services/user-service
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGODB_URI: ${USER_MONGODB_URI:-mongodb://user-mongo:27017/univalle_users}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env}
+    depends_on:
+      user-mongo:
+        condition: service_healthy
+
+  user-mongo:
+    image: mongo:8
+    volumes:
+      - user-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "localhost:27017/test", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  catalog-mongo-data:
+  user-mongo-data:

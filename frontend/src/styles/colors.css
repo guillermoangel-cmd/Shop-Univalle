@@ -1,0 +1,18 @@
+:root {
+  --univalle-red: #cd1f32;
+  --univalle-red-dark: #9f1727;
+  --univalle-gray: #2c4252;
+  --univalle-white: #ffffff;
+  --univalle-black: #171717;
+  --shop-green: #20b61b;
+  --shop-blue: #1a73e8;
+
+  --paper: #f4f3f0;
+  --ink: var(--univalle-black);
+  --forest: #174c3c;
+  --leaf: #5b9275;
+  --sun: #f1c84f;
+  --terracotta: var(--univalle-red);
+  --muted: #6f766f;
+  --line: #d8d8ca;
+}

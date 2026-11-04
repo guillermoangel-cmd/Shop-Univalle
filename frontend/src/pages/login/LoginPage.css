@@ -1,0 +1,286 @@
+.login-page {
+  display: grid;
+  min-height: 100vh;
+  align-content: center;
+  justify-items: center;
+  padding: 32px 20px 20px;
+  background:
+    linear-gradient(135deg, transparent 0 49.8%, #2c42520a 50%, transparent 50.2%) 0 0 / 34px 34px,
+    var(--paper);
+}
+
+.login-panel {
+  width: min(100%, 440px);
+  padding: 35px 40px 32px;
+  border: 1px solid #e8e4df;
+  border-top: 4px solid var(--univalle-red);
+  border-radius: 8px;
+  background: var(--univalle-white);
+  box-shadow: 0 18px 50px #202a3012, 0 3px 12px #202a300d;
+  animation: login-arrive 420ms ease both;
+}
+
+.login-brand {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  color: var(--univalle-gray);
+}
+
+.login-brand__seal {
+  display: grid;
+  width: 48px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 2px solid var(--univalle-red);
+  border-radius: 50%;
+  color: var(--univalle-red);
+  font: 700 14px/1 var(--mono);
+}
+
+.login-brand__name {
+  color: var(--univalle-black);
+  font: 600 21px/1.2 var(--display);
+}
+
+.login-brand__caption {
+  color: #68737a;
+  font: 10px/1.4 var(--mono);
+  text-transform: uppercase;
+}
+
+.login-heading {
+  margin-bottom: 23px;
+  text-align: center;
+}
+
+.login-eyebrow {
+  margin: 0 0 8px;
+  color: var(--univalle-red);
+  font: 500 10px/1.4 var(--mono);
+  text-transform: uppercase;
+}
+
+.login-heading h1 {
+  margin: 0;
+  color: var(--univalle-black);
+  font: 500 30px/1.2 var(--display);
+}
+
+.login-heading > p:last-child {
+  margin: 9px 0 0;
+  color: #62676b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.login-form {
+  display: grid;
+  gap: 18px;
+}
+
+.login-field {
+  display: grid;
+  gap: 7px;
+}
+
+.login-field label {
+  color: var(--univalle-gray);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.login-field input {
+  width: 100%;
+  min-height: 47px;
+  padding: 0 13px;
+  border: 1px solid #cbd1d5;
+  border-radius: 4px;
+  outline: 0;
+  background: #fff;
+  color: var(--univalle-black);
+  font: 14px/1.4 var(--body);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.login-field input::placeholder {
+  color: #8a9297;
+  font-size: 12px;
+}
+
+.login-field input:focus {
+  border-color: var(--shop-blue);
+  box-shadow: 0 0 0 3px #1a73e81c;
+}
+
+.login-field input[aria-invalid='true'] {
+  border-color: var(--univalle-red);
+}
+
+.login-field__hint,
+.login-field__error {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.login-field__hint {
+  color: #747b80;
+}
+
+.login-field__error {
+  color: var(--univalle-red-dark);
+}
+
+.login-password-wrap {
+  position: relative;
+}
+
+.login-password-wrap input {
+  padding-right: 88px;
+}
+
+.login-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  min-height: 32px;
+  padding: 0 7px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--shop-blue);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.login-password-toggle:hover {
+  background: #1a73e80c;
+}
+
+.login-submit {
+  min-height: 47px;
+  margin-top: 5px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--univalle-red);
+  box-shadow: 0 2px 4px #2c42522e;
+  color: var(--univalle-white);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.login-submit:hover {
+  transform: translateY(-1px);
+  background: var(--univalle-red-dark);
+}
+
+.login-submit:active {
+  transform: translateY(0);
+}
+
+.login-status {
+  margin: -5px 0 0;
+  padding: 11px 12px;
+  border-left: 3px solid var(--shop-blue);
+  background: #1a73e80c;
+  color: var(--univalle-gray);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.login-status--error {
+  border-left-color: var(--univalle-red);
+  background: #cd1f320d;
+}
+
+.login-status--success {
+  border-left-color: var(--shop-green);
+  background: #20b61b12;
+}
+
+.login-submit:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 23px 0 13px;
+  color: #788087;
+  font: 10px/1.4 var(--mono);
+  text-transform: uppercase;
+}
+
+.login-divider::before,
+.login-divider::after {
+  height: 1px;
+  flex: 1;
+  background: #e1e4e6;
+  content: '';
+}
+
+.login-note {
+  margin: 0;
+  color: #68737a;
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.login-footer {
+  margin-top: 18px;
+  color: #000000;
+  font: 10px/1.5 var(--mono);
+}
+
+.login-footer span {
+  padding: 0 5px;
+  color: var(--univalle-red);
+}
+
+@keyframes login-arrive {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+  .login-page {
+    align-content: start;
+    padding: 20px 14px;
+  }
+
+  .login-panel {
+    margin-top: 3vh;
+    padding: 28px 22px 25px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-panel,
+  .login-submit {
+    animation: none;
+    transition: none;
+  }
+}
+
+.login-mode-switch {
+  display: block;
+  min-height: 40px;
+  margin: 8px auto 0;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--shop-blue);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.login-mode-switch:hover {
+  text-decoration: underline;
+}
