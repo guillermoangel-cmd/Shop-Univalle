@@ -94,15 +94,7 @@ Ingresar al directorio:
 cd Shop-Univalle
 ```
 
-### 2. Configurar las variables de entorno
-
-El proyecto incluye un archivo `.env.example` como referencia para configurar las variables de entorno.
-
-Crea los archivos `.env` correspondientes a cada componente que los necesite y configura sus valores según la documentación de cada servicio.
-
-**Importante:** No publiques archivos `.env` con contraseñas, tokens o credenciales en GitHub.
-
-### 3. Instalar dependencias
+### 2. Instalar dependencias
 
 **Frontend**
 
@@ -122,19 +114,17 @@ npm install
 
 ```bash
 cd ../services/catalog-service
-npm install
+npm ci
 ```
 
 **User Service**
 
 ```bash
-cd ../user-service
+cd ../services/user-service
 npm ci
 ```
 
-Define un `JWT_SECRET` aleatorio (al menos 32 caracteres) en `.env`. Después de levantar Compose, carga los correos autorizados ficticios con `docker compose exec user-service npm run seed:authorized-emails`. Consulta [services/user-service/README.md](services/user-service/README.md) para el flujo de activación y login.
-
-## ▶️ Ejecución en desarrollo
+## ▶️ Ejecución del proyecto
 
 Cada componente puede ejecutarse individualmente desde su directorio.
 
@@ -166,9 +156,11 @@ cd services/catalog-service
 npm run start:dev
 ```
 
+**Lo mismo para los demas servicios en sus carpetas**
+
 Ejecuta cada componente en una terminal independiente. Consulta los archivos `package.json` y la documentación interna de cada servicio para verificar sus scripts, puertos y variables de entorno.
 
-En modo Vite, el frontend reenvía `/api` a `http://localhost:3000`; inicia el gateway y configura las URL/puertos de catálogo y usuarios para tu entorno local.
+En modo Vite, el frontend reenvía `/api` a `http://localhost:3000`; inicia el gateway y configura las URL/puertos de catálogo y usuarios para el entorno local.
 
 ## 🐳 Ejecución con Docker
 
@@ -192,7 +184,7 @@ Para detener los servicios:
 docker compose down
 ```
 
-La ejecución requiere tener Docker Desktop instalado y configurado correctamente. Copia `.env.example` a `.env` y define `UNIVERSITY_EMAIL_DOMAINS` con los dominios oficiales confirmados por la Universidad antes de habilitar registros.
+**La ejecución requiere tener Docker Desktop instalado y configurado correctamente.**
 
 ## Diseño y seguimiento
 
@@ -205,7 +197,7 @@ Para mantener organizado el trabajo colaborativo, se recomienda utilizar ramas i
 Crear una nueva rama:
 
 ```bash
-git checkout -b feature/nombre-funcionalidad
+git checkout -b fabian-martinez
 ```
 
 Agregar los cambios:
@@ -223,7 +215,7 @@ git commit -m "feat: descripción del cambio"
 Subir la rama:
 
 ```bash
-git push -u origin feature/nombre-funcionalidad
+git push -u origin fabian-martinez
 ```
 
 Posteriormente, crear un **Pull Request** en GitHub para revisar e integrar los cambios en la rama principal.

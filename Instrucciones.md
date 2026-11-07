@@ -2,7 +2,7 @@
 
 ## 1. Descripción general
 
-Este documento explica cómo preparar el entorno de desarrollo, ejecutar el frontend y conocer la configuración actual de las bases de datos.
+Este documento explica cómo preparar el entorno de desarrollo, ejecutar el proyecto y conocer la configuración actual de las bases de datos.
 
 ## 2. Requisitos previos
 
@@ -30,7 +30,7 @@ Ubícate en la carpeta raíz del proyecto y ejecuta:
 cd frontend
 ```
 
-### Paso 3. Instalar las dependencias
+### Paso 3. Instalar las dependencias (si no las tienes)
 
 Si es la primera vez que ejecutas el proyecto o no tienes instalada la carpeta `node_modules`, ejecuta:
 
@@ -53,6 +53,24 @@ http://localhost:5173/
 ```
 
 Abre esa dirección en el navegador para visualizar la aplicación.
+
+### Paso 5. Iniciar el servicio y api que recibe las solicitudes
+
+**API Gateway**
+
+```bash
+cd api-gateway
+npm install **si no tienes las dependencias intaladas**
+npm run start:dev
+```
+
+**User Service**
+
+```bash
+cd services/user-service
+npm install **si no tienes las dependencias intaladas**
+npm run start:dev
+```
 
 **Importante:** Mantén abierta la terminal mientras utilizas la aplicación. Para detener el servidor, presiona `Ctrl + C`.
 
