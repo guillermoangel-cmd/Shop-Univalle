@@ -1,0 +1,30 @@
+[
+  {
+    "email": "estudiante.demo@correounivalle.edu.co",
+    "nombre": "Estudiante",
+    "apellido": "Demo",
+    "rol": "ESTUDIANTE",
+    "authorized": true
+  },
+  {
+    "email": "docente.demo@correounivalle.edu.co",
+    "nombre": "Docente",
+    "apellido": "Demo",
+    "rol": "DOCENTE",
+    "authorized": true
+  },
+  {
+    "email": "administrativo.demo@correounivalle.edu.co",
+    "nombre": "Administrativo",
+    "apellido": "Demo",
+    "rol": "ADMINISTRATIVO",
+    "authorized": true
+  },
+  {
+    "email": "administrador.demo@correounivalle.edu.co",
+    "nombre": "Administrador",
+    "apellido": "Demo",
+    "rol": "ADMINISTRADOR",
+    "authorized": false
+  }
+]

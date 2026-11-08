@@ -3,6 +3,7 @@ export interface ProductData {
 	description?: string;
 	imageUrl?: string;
 	category: string;
+	categoryId?: string;
 	price: number;
 	stock: number;
 }
@@ -18,6 +19,7 @@ export class ProductEntity {
 		public readonly category: string,
 		public readonly price: number,
 		public readonly stock: number,
+		public readonly categoryId: string | null = null,
 	) {}
 
 	static create(data: ProductData): ProductEntity {
@@ -48,6 +50,7 @@ export class ProductEntity {
 			category,
 			data.price,
 			data.stock,
+			typeof data.categoryId === 'string' ? data.categoryId.trim() || null : null,
 		);
 	}
 }

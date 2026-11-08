@@ -15,4 +15,5 @@
   --terracotta: var(--univalle-red);
   --muted: #6f766f;
   --line: #d8d8ca;
+  --error-server: #cd1f32;
 }

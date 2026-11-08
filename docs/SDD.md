@@ -18,10 +18,12 @@ La aplicación web esta desarrollada como proyecto académico. Su arquitectura e
 
 | Componente | Estado | Persistencia / interfaz |
 |---|---|---|
-| API Gateway | En implementación | GET `/api/products`, GET `/api/products/:id`, POST `/api/users/*`, `/api/cart/*`, `/api/orders/*` |
-| Catálogo | MVP | GET/POST `/products`, MongoDB independiente |
-| Usuarios | Registro y login | POST `/users`, POST `/auth/login`, POST `/auth/activate`, MongoDB independiente |
-| Frontend | Catálogo y Carrito funcional | Vite/React; vista `/cart` conectada a Orders Service con resumen, impuestos y checkout |
+| Componente | Estado | Persistencia / interfaz |
+|---|---|---|
+| API Gateway | En implementación | Proxy REST a catálogo, categorías, usuarios, carrito y órdenes |
+| Catálogo | MVP ampliado | GET `/products`, GET `/categories`; escritura con rol `ADMINISTRADOR`; MongoDB independiente (`univalle_catalog`) |
+| Usuarios | Registro y login | POST `/users`, POST `/auth/login`, POST `/auth/activate`, JWT, MongoDB independiente |
+| Frontend | Catálogo y Carrito funcional | Vite/React; panel admin de catálogo y vista `/cart` conectada a Orders Service |
 | Pedidos | MVP implementado | Carrito persistente, códigos promocionales, creación de órdenes e historial en MongoDB (`univalle_orders`) |
 | Pagos | Pendiente | Proveedor de pagos y manejo seguro de transacciones |
 | Búsqueda | Pendiente | Índice y API de búsqueda |
@@ -31,8 +33,9 @@ La aplicación web esta desarrollada como proyecto académico. Su arquitectura e
 
 - `UNIVERSITY_EMAIL_DOMAINS` es una lista configurable para filtrar dominios. Un dominio coincidente no demuestra que la persona controle la cuenta ni que siga vinculada a la Universidad. Antes de producción se requiere verificación institucional por correo o integración con identidad/SSO de Univalle.
 - Los dominios oficiales aceptados deben confirmarse con el equipo/universidad. No se fija uno por defecto.
-- El servicio de usuarios hashea contraseñas con `scrypt`; todavía faltan inicio de sesión, verificación de correo, recuperación de cuenta, roles y autorización.
-- La creación de productos no tiene autenticación/autorización administrativa. No exponerla públicamente hasta implementar esos controles.
+- El servicio de usuarios hashea contraseñas y emite JWT al iniciar sesión. Todavía faltan verificación de correo institucional real, recuperación de cuenta y un flujo de administración de roles.
+- Las cuentas administradoras se provisionan manualmente; no hay un flujo de autoservicio para otorgar el rol.
+- Las escrituras del catálogo validan el JWT y requieren el rol `ADMINISTRADOR`. Este rol se asigna solo en `correos_institucionales` por un operador; la cuenta existente debe volver a iniciar sesión después de su promoción.
 - No se debe integrar una pasarela de pago real ni almacenar datos de tarjeta en este proyecto sin definir el proveedor y el alcance de cumplimiento.
 
 ## SOLID y pruebas

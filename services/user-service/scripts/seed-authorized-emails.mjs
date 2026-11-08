@@ -1,7 +1,15 @@
+import { readFile } from 'node:fs/promises';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
 dotenv.config({ path: '../../.env' });
+
+const seedFile = new URL(
+	'../seeds/data/correos-institucionales.seed.json',
+	import.meta.url,
+);
+// The administrator demo is for testing catalog management and stays unauthorized by default.
+const demoAccounts = JSON.parse(await readFile(seedFile, 'utf8'));
 
 const mongoUri =
 	process.env.MONGODB_URI ??
@@ -15,7 +23,7 @@ const authorizedEmailSchema = new mongoose.Schema(
 		rol: {
 			type: String,
 			required: true,
-			enum: ['ESTUDIANTE', 'DOCENTE', 'ADMINISTRATIVO'],
+			enum: ['ESTUDIANTE', 'DOCENTE', 'ADMINISTRATIVO', 'ADMINISTRADOR'],
 		},
 		authorized: { type: Boolean, required: true, default: true },
 	},
@@ -26,30 +34,6 @@ const AuthorizedEmail = mongoose.model(
 	'AuthorizedEmailSeed',
 	authorizedEmailSchema,
 );
-
-const demoAccounts = [
-	{
-		email: 'estudiante.demo@correounivalle.edu.co',
-		nombre: 'Estudiante',
-		apellido: 'Demo',
-		rol: 'ESTUDIANTE',
-		authorized: true,
-	},
-	{
-		email: 'docente.demo@correounivalle.edu.co',
-		nombre: 'Docente',
-		apellido: 'Demo',
-		rol: 'DOCENTE',
-		authorized: true,
-	},
-	{
-		email: 'administrativo.demo@correounivalle.edu.co',
-		nombre: 'Administrativo',
-		apellido: 'Demo',
-		rol: 'ADMINISTRATIVO',
-		authorized: true,
-	},
-];
 
 try {
 	await mongoose.connect(mongoUri);

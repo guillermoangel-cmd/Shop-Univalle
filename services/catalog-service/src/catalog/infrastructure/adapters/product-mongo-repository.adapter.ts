@@ -14,6 +14,7 @@ const DEFAULT_PRODUCTS: ProductEntity[] = [
     'ROPA',
     45000,
     25,
+    null,
   ),
   new ProductEntity(
     'uv-agenda-2026',
@@ -23,6 +24,7 @@ const DEFAULT_PRODUCTS: ProductEntity[] = [
     'ACADÉMICO',
     28000,
     40,
+    null,
   ),
   new ProductEntity(
     'uv-taza-75',
@@ -32,6 +34,7 @@ const DEFAULT_PRODUCTS: ProductEntity[] = [
     'ACCESORIOS',
     18000,
     30,
+    null,
   ),
   new ProductEntity(
     'uv-maletin-2026',
@@ -41,6 +44,7 @@ const DEFAULT_PRODUCTS: ProductEntity[] = [
     'BOLSOS',
     120000,
     15,
+    null,
   ),
 ];
 
@@ -92,6 +96,49 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
     }
   }
 
+  async findByCategoryId(id: string): Promise<number> {
+    if (!this.isMongoConnected()) {
+      return Array.from(this.memoryProducts.values()).filter(
+        (p) => p.categoryId === id,
+      ).length;
+    }
+    try {
+      return await this.productModel.countDocuments({ categoryId: id }).exec();
+    } catch {
+      return 0;
+    }
+  }
+
+  async updateCategoryName(categoryId: string, name: string): Promise<void> {
+    for (const [key, p] of this.memoryProducts.entries()) {
+      if (p.categoryId === categoryId) {
+        this.memoryProducts.set(
+          key,
+          new ProductEntity(
+            p.id,
+            p.name,
+            p.description,
+            p.imageUrl,
+            name,
+            p.price,
+            p.stock,
+            p.categoryId,
+          ),
+        );
+      }
+    }
+
+    if (this.isMongoConnected()) {
+      try {
+        await this.productModel
+          .updateMany({ categoryId }, { $set: { category: name } })
+          .exec();
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   async save(product: ProductEntity): Promise<ProductEntity> {
     if (!this.isMongoConnected()) {
       const id = product.id ?? `uv-prod-${Date.now()}`;
@@ -103,6 +150,7 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
         product.category,
         product.price,
         product.stock,
+        product.categoryId,
       );
       this.memoryProducts.set(id, saved);
       return saved;
@@ -113,6 +161,7 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
       description: product.description,
       imageUrl: product.imageUrl,
       category: product.category,
+      categoryId: product.categoryId,
       price: product.price,
       stock: product.stock,
     });
@@ -131,6 +180,7 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
       record.category,
       record.price,
       record.stock,
+      record.categoryId ?? null,
     );
   }
 }

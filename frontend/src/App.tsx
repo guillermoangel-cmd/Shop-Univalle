@@ -15,28 +15,35 @@ import {
 import type { CartState } from './types/cart'
 import type { Product } from './types/product'
 
+interface Session {
+  accessToken: string
+  role: string
+}
+
 type ViewMode = 'login' | 'catalog' | 'cart'
 
-const TOKEN_STORAGE_KEY = 'univalle_shop_token'
+const SESSION_STORAGE_KEY = 'univalle_shop_session'
 
-function getInitialView(hasToken: boolean): ViewMode {
+function getSavedSession(): Session | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as Session) : null
+  } catch {
+    return null
+  }
+}
+
+function getInitialView(hasSession: boolean): ViewMode {
   if (typeof window !== 'undefined' && window.location.pathname === '/cart') {
     return 'cart'
   }
-  return hasToken ? 'catalog' : 'login'
+  return hasSession ? 'catalog' : 'login'
 }
 
 function App() {
-  const [accessToken, setAccessToken] = useState<string | null>(() => {
-    try {
-      return sessionStorage.getItem(TOKEN_STORAGE_KEY)
-    } catch {
-      return null
-    }
-  })
-
+  const [session, setSession] = useState<Session | null>(getSavedSession)
   const [view, setView] = useState<ViewMode>(() =>
-    getInitialView(Boolean(accessToken)),
+    getInitialView(Boolean(session)),
   )
 
   const [cart, setCart] = useState<CartState>({
@@ -56,7 +63,7 @@ function App() {
     },
   })
 
-  const userId = 'estudiante-univalle'
+  const userId = session?.role ? `${session.role.toLowerCase()}-univalle` : 'estudiante-univalle'
 
   useEffect(() => {
     void fetchCart(userId).then(setCart)
@@ -77,17 +84,18 @@ function App() {
       if (window.location.pathname === '/cart') {
         setView('cart')
       } else {
-        setView(accessToken ? 'catalog' : 'login')
+        setView(session ? 'catalog' : 'login')
       }
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
-  }, [accessToken])
+  }, [session])
 
-  const handleAuthenticated = (token: string) => {
-    setAccessToken(token)
+  const handleAuthenticated = (accessToken: string, role: string) => {
+    const nextSession = { accessToken, role }
+    setSession(nextSession)
     try {
-      sessionStorage.setItem(TOKEN_STORAGE_KEY, token)
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextSession))
     } catch {
       // ignore
     }
@@ -95,9 +103,9 @@ function App() {
   }
 
   const handleLogout = () => {
-    setAccessToken(null)
+    setSession(null)
     try {
-      sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+      sessionStorage.removeItem(SESSION_STORAGE_KEY)
     } catch {
       // ignore
     }
@@ -111,14 +119,10 @@ function App() {
 
   const handleLoadReferenceItems = async () => {
     await clearAllCart(userId)
-    await addProductToCart(userId, DEFAULT_UNIVALLE_PRODUCTS[0], 1) // Camiseta $45.000 x 1
-    await addProductToCart(userId, DEFAULT_UNIVALLE_PRODUCTS[1], 2) // Agenda $28.000 x 2 = $56.000
-    await addProductToCart(userId, DEFAULT_UNIVALLE_PRODUCTS[2], 1) // Taza $18.000 x 1
-    const updated = await addProductToCart(
-      userId,
-      DEFAULT_UNIVALLE_PRODUCTS[3],
-      1,
-    ) // Maletín $120.000 x 1
+    await addProductToCart(userId, DEFAULT_UNIVALLE_PRODUCTS[0], 1)
+    await addProductToCart(userId, DEFAULT_UNIVALLE_PRODUCTS[1], 2)
+    await addProductToCart(userId, DEFAULT_UNIVALLE_PRODUCTS[2], 1)
+    const updated = await addProductToCart(userId, DEFAULT_UNIVALLE_PRODUCTS[3], 1)
     setCart(updated)
   }
 
@@ -126,26 +130,20 @@ function App() {
     return (
       <CartPage
         cart={cart}
-        isAuthenticated={Boolean(accessToken)}
-        onBackToCatalog={() => navigateTo(accessToken ? 'catalog' : 'login')}
+        isAuthenticated={Boolean(session)}
+        onBackToCatalog={() => navigateTo(session ? 'catalog' : 'login')}
         onGoToLogin={() => navigateTo('login')}
         onLogout={handleLogout}
         onUpdateQuantity={async (productId, quantity) => {
-          const updated = await updateCartItemState(userId, productId, {
-            quantity,
-          })
+          const updated = await updateCartItemState(userId, productId, { quantity })
           setCart(updated)
         }}
         onToggleSelected={async (productId, selected) => {
-          const updated = await updateCartItemState(userId, productId, {
-            selected,
-          })
+          const updated = await updateCartItemState(userId, productId, { selected })
           setCart(updated)
         }}
         onToggleFavorite={async (productId, favorite) => {
-          const updated = await updateCartItemState(userId, productId, {
-            favorite,
-          })
+          const updated = await updateCartItemState(userId, productId, { favorite })
           setCart(updated)
         }}
         onRemoveItem={async (productId) => {
@@ -170,7 +168,7 @@ function App() {
     )
   }
 
-  if (!accessToken) {
+  if (!session) {
     return <LoginPage onAuthenticated={handleAuthenticated} />
   }
 
@@ -179,6 +177,8 @@ function App() {
       bagCount={cart.summary.totalItems}
       onOpenCart={() => navigateTo('cart')}
       onAddProduct={handleAddProduct}
+      accessToken={session.accessToken}
+      role={session.role}
       onLogout={handleLogout}
     />
   )

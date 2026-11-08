@@ -29,7 +29,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      MONGODB_URI: ${CATALOG_MONGODB_URI:-mongodb://catalog-mongo:27017/catalog}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env}
+      MONGODB_URI: ${CATALOG_MONGODB_URI:-mongodb://catalog-mongo:27017/univalle_catalog}
     depends_on:
       catalog-mongo:
         condition: service_healthy

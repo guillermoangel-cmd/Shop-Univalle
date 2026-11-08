@@ -1,6 +1,8 @@
 # User Service
 
-Servicio NestJS de autenticación con arquitectura hexagonal. El rol se obtiene exclusivamente del correo autorizado; nunca se acepta desde el formulario.
+Servicio NestJS de autenticación con arquitectura hexagonal. El rol se obtiene exclusivamente del correo autorizado; nunca se acepta desde el formulario. Los roles admitidos son `ESTUDIANTE`, `DOCENTE`, `ADMINISTRATIVO` y `ADMINISTRADOR`.
+
+Para asignar administración, un operador debe cambiar el rol del correo en la colección `correos_institucionales` antes de que active su cuenta. Para un usuario existente, actualiza también `usuarios.rol`; debe iniciar sesión nuevamente para recibir el rol actualizado en el JWT. No se habilita el rol administrador desde la interfaz pública.
 
 ## Colecciones MongoDB
 
@@ -22,7 +24,7 @@ La pertenencia se simula con una lista ficticia; esto no comprueba control real 
 
 ## Datos de demostración
 
-El seed es manual e idempotente; solo agrega los registros si no existen:
+El seed es manual e idempotente; lee `seeds/data/correos-institucionales.seed.json` y solo agrega los registros si no existen:
 
 ```bash
 npm run seed:authorized-emails
@@ -34,9 +36,11 @@ Con Docker Compose:
 docker compose exec user-service npm run seed:authorized-emails
 ```
 
-Correos de demostración: `estudiante.demo@correounivalle.edu.co` contraseña: `12345678`, 
+Correos de demostración: `estudiante.demo@correounivalle.edu.co` contraseña: `12345678`,
 
 otros ejemplos: `docente.demo@correounivalle.edu.co` y `administrativo.demo@correounivalle.edu.co`. Define una contraseña al activar cada cuenta.
+
+> **Usuario demo administrador:** `administrador.demo@correounivalle.edu.co` sirve para probar la administración del catálogo: al iniciar sesión puede crear, editar, desactivar y reactivar categorías, y publicar productos que aparecerán para los usuarios de la tienda. Está marcado `authorized: false` en el seed para que nadie pueda activar esta cuenta privilegiada automáticamente. Para una prueba local controlada, un operador debe autorizar el correo en `correos_institucionales`; después se activa la cuenta definiendo una contraseña. No reutilices esta cuenta ni la habilites en un entorno público.
 
 ## Configuración y desarrollo
 

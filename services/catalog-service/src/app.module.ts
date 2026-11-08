@@ -13,7 +13,7 @@ import { CatalogModule } from './catalog/catalog.module.js';
         serverSelectionTimeoutMS: 2500,
         connectionFactory: (connection) => {
           connection.on('error', () => {
-            // Evita que la caída de Mongo local tumbe el proceso en desarrollo
+            // Evita que la caida de Mongo local tumbe el proceso en desarrollo
           });
           return connection;
         },

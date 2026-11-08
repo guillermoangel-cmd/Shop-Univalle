@@ -4,6 +4,7 @@ export interface Product {
   description: string
   imageUrl: string
   category: string
+  categoryId?: string | null
   price: number
   stock: number
 }
