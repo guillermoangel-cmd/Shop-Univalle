@@ -24,7 +24,9 @@ import { AuthController } from './infraestructure/http/auth.controller.js';
 		JwtModule.registerAsync({
 			inject: [ConfigService],
 			useFactory: (config: ConfigService) => ({
-				secret: config.getOrThrow<string>('JWT_SECRET'),
+				secret:
+					config.get<string>('JWT_SECRET') ??
+					'univalle-shop-dev-jwt-secret-2026',
 				signOptions: { expiresIn: '1h' },
 			}),
 		}),

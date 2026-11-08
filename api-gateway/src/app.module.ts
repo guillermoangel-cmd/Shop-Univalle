@@ -4,6 +4,7 @@ import { HttpModule } from '@nestjs/axios';
 
 import { ProductsModule } from './gateway/products/products.module';
 import { UsersModule } from './gateway/users/users.module';
+import { OrdersModule } from './gateway/orders/orders.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UsersModule } from './gateway/users/users.module';
     HttpModule,
     ProductsModule,
     UsersModule,
+    OrdersModule,
   ],
 })
 export class AppModule {}

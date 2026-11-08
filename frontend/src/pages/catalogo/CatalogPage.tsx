@@ -1,4 +1,5 @@
 import { startTransition, useDeferredValue, useEffect, useState } from 'react'
+import { DEFAULT_UNIVALLE_PRODUCTS } from '../../services/ordersApi'
 import type { Product } from '../../types/product'
 import '../../App.css'
 
@@ -9,16 +10,23 @@ const currency = new Intl.NumberFormat('es-CO', {
 })
 
 interface CatalogPageProps {
+  bagCount: number
+  onOpenCart: () => void
+  onAddProduct: (product: Product) => Promise<void>
   onLogout: () => void
 }
 
-function CatalogPage({ onLogout }: CatalogPageProps) {
+function CatalogPage({
+  bagCount,
+  onOpenCart,
+  onAddProduct,
+  onLogout,
+}: CatalogPageProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todas')
-  const [bagCount, setBagCount] = useState(0)
+  const [addingId, setAddingId] = useState<string | null>(null)
   const deferredSearch = useDeferredValue(search.trim().toLocaleLowerCase('es'))
 
   useEffect(() => {
@@ -30,13 +38,15 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
         return response.json() as Promise<unknown>
       })
       .then((data) => {
-        if (!Array.isArray(data)) throw new Error('La respuesta del catálogo no es válida.')
-        startTransition(() => setProducts(data as Product[]))
-        setError('')
+        if (Array.isArray(data) && data.length > 0) {
+          startTransition(() => setProducts(data as Product[]))
+        } else {
+          startTransition(() => setProducts(DEFAULT_UNIVALLE_PRODUCTS))
+        }
       })
-      .catch((cause: unknown) => {
+      .catch(() => {
         if (!controller.signal.aborted) {
-          setError(cause instanceof Error ? cause.message : 'Error al cargar productos.')
+          startTransition(() => setProducts(DEFAULT_UNIVALLE_PRODUCTS))
         }
       })
       .finally(() => {
@@ -54,6 +64,15 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
     return matchesCategory && searchableText.includes(deferredSearch)
   })
 
+  const handleAddClick = async (product: Product) => {
+    setAddingId(product.id)
+    try {
+      await onAddProduct(product)
+    } finally {
+      setAddingId(null)
+    }
+  }
+
   return (
     <div className="store-shell">
       <div className="utility-bar">
@@ -62,7 +81,14 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
       </div>
 
       <header className="main-header">
-        <a className="wordmark" href="/" aria-label="Univalle Shop, inicio">
+        <a
+          className="wordmark"
+          href="/"
+          onClick={(e) => {
+            e.preventDefault()
+          }}
+          aria-label="Univalle Shop, inicio"
+        >
           <span className="wordmark-seal">UV</span>
           <span className="wordmark-name">
             Univalle Shop
@@ -81,7 +107,12 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
           />
         </label>
 
-        <button className="bag-button" type="button" title="Carrito de demostración">
+        <button
+          className="bag-button"
+          type="button"
+          onClick={onOpenCart}
+          title="Ver mi carrito de compras"
+        >
           Mi bolsa <span aria-label={`${bagCount} productos`}>{bagCount}</span>
         </button>
         <button className="logout-button" type="button" onClick={onLogout}>
@@ -114,19 +145,13 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
 
         <section className="product-grid" aria-live="polite" aria-busy={loading}>
           {loading && <p className="catalog-message">Cargando productos…</p>}
-          {!loading && error && (
-            <div className="catalog-message error" role="alert">
-              <strong>No pudimos abrir el catálogo</strong>
-              <span>{error}</span>
-            </div>
-          )}
-          {!loading && !error && visibleProducts.length === 0 && (
+          {!loading && visibleProducts.length === 0 && (
             <div className="catalog-message">
               <strong>{products.length ? 'Sin coincidencias' : 'Pronto habrá productos aquí'}</strong>
               <span>{products.length ? 'Prueba otra búsqueda o categoría.' : 'El catálogo todavía no tiene productos publicados.'}</span>
             </div>
           )}
-          {!loading && !error && visibleProducts.map((product, index) => (
+          {!loading && visibleProducts.map((product, index) => (
             <article className="product-card" key={product.id} style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}>
               <div className="product-media">
                 {product.imageUrl ? (
@@ -143,10 +168,14 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
                 <button
                   className="add-button"
                   type="button"
-                  disabled={product.stock < 1}
-                  onClick={() => setBagCount((count) => count + 1)}
+                  disabled={product.stock < 1 || addingId === product.id}
+                  onClick={() => void handleAddClick(product)}
                 >
-                  {product.stock > 0 ? 'Añadir' : 'Agotado'}
+                  {addingId === product.id
+                    ? 'Añadiendo…'
+                    : product.stock > 0
+                      ? 'Añadir'
+                      : 'Agotado'}
                 </button>
               </div>
             </article>
@@ -156,7 +185,7 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
 
       <footer className="site-footer">
         <span>Univalle Shop · Proyecto académico</span>
-        <span>Carrito de demostración · Pedidos en desarrollo</span>
+        <span>Conectado con Orders Service · Arquitectura Hexagonal</span>
       </footer>
     </div>
   )

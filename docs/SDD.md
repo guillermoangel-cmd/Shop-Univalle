@@ -18,11 +18,11 @@ La aplicación web esta desarrollada como proyecto académico. Su arquitectura e
 
 | Componente | Estado | Persistencia / interfaz |
 |---|---|---|
-| API Gateway | En implementación | GET `/api/products`, GET `/api/products/:id`, POST `/api/users` |
+| API Gateway | En implementación | GET `/api/products`, GET `/api/products/:id`, POST `/api/users/*`, `/api/cart/*`, `/api/orders/*` |
 | Catálogo | MVP | GET/POST `/products`, MongoDB independiente |
-| Usuarios | Registro inicial | POST `/users`, MongoDB independiente |
-| Frontend | Catálogo inicial | Vite/React; carrito aún local y sin pedidos |
-| Pedidos | Pendiente | Carrito persistente, órdenes e historial |
+| Usuarios | Registro y login | POST `/users`, POST `/auth/login`, POST `/auth/activate`, MongoDB independiente |
+| Frontend | Catálogo y Carrito funcional | Vite/React; vista `/cart` conectada a Orders Service con resumen, impuestos y checkout |
+| Pedidos | MVP implementado | Carrito persistente, códigos promocionales, creación de órdenes e historial en MongoDB (`univalle_orders`) |
 | Pagos | Pendiente | Proveedor de pagos y manejo seguro de transacciones |
 | Búsqueda | Pendiente | Índice y API de búsqueda |
 | Recomendación | Pendiente | Perfil de preferencias y API de recomendaciones |
