@@ -30,12 +30,24 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
 		return record ? this.toEntity(record) : null;
 	}
 
+	findByCategoryId(id: string): Promise<number> {
+		return this.productModel.countDocuments({ categoryId: id }).exec();
+	}
+
+	async updateCategoryName(categoryId: string, name: string): Promise<void> {
+		await this.productModel.updateMany(
+			{ categoryId },
+			{ $set: { category: name } },
+		).exec();
+	}
+
 	async save(product: ProductEntity): Promise<ProductEntity> {
 		const record = await this.productModel.create({
 			name: product.name,
 			description: product.description,
 			imageUrl: product.imageUrl,
 			category: product.category,
+			categoryId: product.categoryId,
 			price: product.price,
 			stock: product.stock,
 		});
@@ -54,6 +66,7 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
 			record.category,
 			record.price,
 			record.stock,
+			record.categoryId ?? null,
 		);
 	}
 }

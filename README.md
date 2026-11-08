@@ -45,7 +45,7 @@ Shop-Univalle/
 |---|---|---|
 | Frontend | Interfaz de usuario de la aplicación. | React, TypeScript y Vite |
 | API Gateway | Punto de entrada y gestión de solicitudes hacia los servicios. | NestJS |
-| Catalog Service | Consulta y creación de productos con adaptador Mongo. | NestJS, MongoDB |
+| Catalog Service | Consulta de productos y categorías; escritura protegida para administradores. | NestJS, MongoDB |
 | User Service | Registro con hash de contraseña y filtro de dominios configurables. | NestJS, MongoDB |
 | Orders, Payments, Search, Recommendations | Componentes planificados, todavía sin implementación. | Pendiente |
 | Compose | Frontend, gateway, servicios activos y una BD por servicio. | Docker Compose |

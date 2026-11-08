@@ -71,6 +71,17 @@ try {
         Write-Host 'Se creó .env desde .env.example.'
     }
 
+    $jwtSecretLine = Get-Content (Join-Path $projectRoot '.env') |
+        Where-Object { $_ -match '^JWT_SECRET=' } |
+        Select-Object -First 1
+    if (-not $jwtSecretLine) {
+        throw 'No se encontró JWT_SECRET en .env.'
+    }
+    $jwtSecret = $jwtSecretLine.Substring('JWT_SECRET='.Length).Trim().Trim('"').Trim("'")
+    if ($jwtSecret.Length -lt 32) {
+        throw 'JWT_SECRET debe tener al menos 32 caracteres para iniciar los servicios.'
+    }
+
     if (-not (Test-LocalMongoDb)) {
         $mongoService = Get-Service -Name 'MongoDB' -ErrorAction SilentlyContinue
         if ($null -eq $mongoService) {
@@ -96,17 +107,31 @@ try {
     Start-DevWindow -Title 'Univalle Shop - user-service' `
         -RelativePath 'services\user-service' `
         -NpmScript 'start:dev' `
-        -Environment @{ MONGODB_URI = 'mongodb://127.0.0.1:27017/univalle_users' }
+        -Environment @{
+            MONGODB_URI = 'mongodb://127.0.0.1:27017/univalle_users'
+            JWT_SECRET = $jwtSecret
+        }
+    Start-DevWindow -Title 'Univalle Shop - catalog-service' `
+        -RelativePath 'services\catalog-service' `
+        -NpmScript 'start:dev' `
+        -Environment @{
+            MONGODB_URI = 'mongodb://127.0.0.1:27017/univalle_catalog'
+            PORT = '3002'
+            JWT_SECRET = $jwtSecret
+        }
     Start-DevWindow -Title 'Univalle Shop - API Gateway' `
         -RelativePath 'api-gateway' `
         -NpmScript 'start:dev' `
-        -Environment @{ USER_SERVICE_URL = 'http://localhost:3003' }
+        -Environment @{
+            USER_SERVICE_URL = 'http://localhost:3003'
+            CATALOG_SERVICE_URL = 'http://localhost:3002'
+        }
     Start-DevWindow -Title 'Univalle Shop - Frontend' `
         -RelativePath 'frontend' `
         -NpmScript 'dev' `
         -Environment @{}
 
-    Write-Host 'Se abrieron las ventanas de user-service, API Gateway y frontend.'
+    Write-Host 'Se abrieron las ventanas de user-service, catalog-service, API Gateway y frontend.'
     Write-Host 'Para detener cada servidor, presiona Ctrl+C en su ventana.'
 }
 catch {

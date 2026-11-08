@@ -18,8 +18,8 @@ La aplicación web esta desarrollada como proyecto académico. Su arquitectura e
 
 | Componente | Estado | Persistencia / interfaz |
 |---|---|---|
-| API Gateway | En implementación | GET `/api/products`, GET `/api/products/:id`, POST `/api/users` |
-| Catálogo | MVP | GET/POST `/products`, MongoDB independiente |
+| API Gateway | En implementación | Proxy REST a catálogo, categorías y usuarios |
+| Catálogo | MVP ampliado | GET `/products`, GET `/categories`; escritura de productos/categorías solo para administradores; MongoDB independiente (`univalle_catalog`) |
 | Usuarios | Registro inicial | POST `/users`, MongoDB independiente |
 | Frontend | Catálogo inicial | Vite/React; carrito aún local y sin pedidos |
 | Pedidos | Pendiente | Carrito persistente, órdenes e historial |
@@ -31,8 +31,9 @@ La aplicación web esta desarrollada como proyecto académico. Su arquitectura e
 
 - `UNIVERSITY_EMAIL_DOMAINS` es una lista configurable para filtrar dominios. Un dominio coincidente no demuestra que la persona controle la cuenta ni que siga vinculada a la Universidad. Antes de producción se requiere verificación institucional por correo o integración con identidad/SSO de Univalle.
 - Los dominios oficiales aceptados deben confirmarse con el equipo/universidad. No se fija uno por defecto.
-- El servicio de usuarios hashea contraseñas con `scrypt`; todavía faltan inicio de sesión, verificación de correo, recuperación de cuenta, roles y autorización.
-- La creación de productos no tiene autenticación/autorización administrativa. No exponerla públicamente hasta implementar esos controles.
+- El servicio de usuarios hashea contraseñas y emite JWT al iniciar sesión. Todavía faltan verificación de correo institucional real, recuperación de cuenta y un flujo de administración de roles.
+- Las cuentas administradoras se provisionan manualmente; no hay un flujo de autoservicio para otorgar el rol.
+- Las escrituras del catálogo validan el JWT y requieren el rol `ADMINISTRADOR`. Este rol se asigna solo en `correos_institucionales` por un operador; la cuenta existente debe volver a iniciar sesión después de su promoción.
 - No se debe integrar una pasarela de pago real ni almacenar datos de tarjeta en este proyecto sin definir el proveedor y el alcance de cumplimiento.
 
 ## SOLID y pruebas

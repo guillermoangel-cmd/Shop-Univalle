@@ -19,5 +19,12 @@
     "apellido": "Demo",
     "rol": "ADMINISTRATIVO",
     "authorized": true
+  },
+  {
+    "email": "administrador.demo@correounivalle.edu.co",
+    "nombre": "Administrador",
+    "apellido": "Demo",
+    "rol": "ADMINISTRADOR",
+    "authorized": false
   }
 ]

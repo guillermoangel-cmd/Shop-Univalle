@@ -4,12 +4,15 @@ import './LoginPage.css'
 const institutionalEmailPattern = /^[a-zA-Z0-9._%+-]+@correounivalle\.edu\.co$/i
 
 interface LoginPageProps {
-  onAuthenticated: (accessToken: string) => void
+  onAuthenticated: (accessToken: string, role: string) => void
 }
 
 interface AuthResponse {
   accessToken?: string
   message?: string | string[]
+  user?: {
+    role?: string
+  }
 }
 
 function LoginPage({ onAuthenticated }: LoginPageProps) {
@@ -78,13 +81,13 @@ function LoginPage({ onAuthenticated }: LoginPageProps) {
         return
       }
 
-      if (!result.accessToken) {
+      if (!result.accessToken || !result.user?.role) {
         setStatus('El servicio respondió sin una sesión válida.')
         setStatusTone('error')
         return
       }
 
-      onAuthenticated(result.accessToken)
+      onAuthenticated(result.accessToken, result.user.role)
     } catch {
       setStatus('No se pudo conectar con el servicio de usuarios.')
       setStatusTone('error')

@@ -1,5 +1,6 @@
 import { startTransition, useDeferredValue, useEffect, useState } from 'react'
 import type { Product } from '../../types/product'
+import AdminCatalogPanel, { type CatalogCategory } from './AdminCatalogPanel'
 import '../../App.css'
 
 const currency = new Intl.NumberFormat('es-CO', {
@@ -9,13 +10,17 @@ const currency = new Intl.NumberFormat('es-CO', {
 })
 
 interface CatalogPageProps {
+  accessToken: string
+  role: string
   onLogout: () => void
 }
 
-function CatalogPage({ onLogout }: CatalogPageProps) {
+function CatalogPage({ accessToken, role, onLogout }: CatalogPageProps) {
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<CatalogCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todas')
   const [bagCount, setBagCount] = useState(0)
@@ -24,29 +29,47 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
   useEffect(() => {
     const controller = new AbortController()
 
-    fetch('/api/products', { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error('No fue posible consultar el catálogo.')
-        return response.json() as Promise<unknown>
-      })
-      .then((data) => {
-        if (!Array.isArray(data)) throw new Error('La respuesta del catálogo no es válida.')
-        startTransition(() => setProducts(data as Product[]))
-        setError('')
-      })
-      .catch((cause: unknown) => {
-        if (!controller.signal.aborted) {
-          setError(cause instanceof Error ? cause.message : 'Error al cargar productos.')
+    async function loadCatalog() {
+      try {
+        const [productResponse, categoryResponse] = await Promise.all([
+          fetch('/api/products', { signal: controller.signal }),
+          fetch('/api/categories', { signal: controller.signal }),
+        ])
+        if (!productResponse.ok) throw new Error('No fue posible consultar los productos.')
+        if (!categoryResponse.ok) throw new Error('No fue posible consultar las categorías.')
+
+        const [productData, categoryData] = await Promise.all([
+          productResponse.json() as Promise<unknown>,
+          categoryResponse.json() as Promise<unknown>,
+        ])
+        if (!Array.isArray(productData) || !Array.isArray(categoryData)) {
+          throw new Error('La respuesta del catálogo no es válida.')
         }
-      })
-      .finally(() => {
+        startTransition(() => {
+          setProducts(productData as Product[])
+          setCategories(categoryData as CatalogCategory[])
+        })
+        setError('')
+      } catch (cause: unknown) {
+        if (!controller.signal.aborted) {
+          const message = cause instanceof Error ? cause.message : 'Error al cargar el catálogo.'
+          setError(message)
+        }
+      } finally {
         if (!controller.signal.aborted) setLoading(false)
-      })
+      }
+    }
+
+    void loadCatalog()
 
     return () => controller.abort()
-  }, [])
+  }, [refreshKey])
 
-  const categories = ['Todas', ...new Set(products.map((product) => product.category))]
+  const categoryNames = [...new Set([
+    ...categories.map((item) => item.name),
+    ...products.map((product) => product.category),
+  ])]
+  const refreshCatalog = () => setRefreshKey((key) => key + 1)
   const visibleProducts = products.filter((product) => {
     const matchesCategory = category === 'Todas' || product.category === category
     const searchableText = `${product.name} ${product.description} ${product.category}`
@@ -81,12 +104,15 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
           />
         </label>
 
-        <button className="bag-button" type="button" title="Carrito de demostración">
-          Mi bolsa <span aria-label={`${bagCount} productos`}>{bagCount}</span>
-        </button>
-        <button className="logout-button" type="button" onClick={onLogout}>
-          Cerrar sesión
-        </button>
+        <div className="header-actions">
+          <button className="bag-button" type="button" title="Carrito de demostración">
+            Mi bolsa <span aria-label={`${bagCount} productos`}>{bagCount}</span>
+          </button>
+          {role === 'ADMINISTRADOR' && <span className="role-badge">Administrador</span>}
+          <button className="logout-button" type="button" onClick={onLogout}>
+            Cerrar sesión
+          </button>
+        </div>
       </header>
 
       <main>
@@ -100,6 +126,14 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
           </p>
         </section>
 
+        {role === 'ADMINISTRADOR' && (
+          <AdminCatalogPanel
+            accessToken={accessToken}
+            categories={categories}
+            onChanged={refreshCatalog}
+          />
+        )}
+
         <section className="catalog-toolbar" aria-label="Filtros del catálogo">
           <span className="results-count">
             {loading ? 'Cargando catálogo…' : `${visibleProducts.length} productos`}
@@ -107,7 +141,8 @@ function CatalogPage({ onLogout }: CatalogPageProps) {
           <label className="category-filter">
             <span>Categoría</span>
             <select value={category} onChange={(event) => setCategory(event.target.value)}>
-              {categories.map((item) => <option key={item}>{item}</option>)}
+              <option>Todas</option>
+              {categoryNames.map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
         </section>

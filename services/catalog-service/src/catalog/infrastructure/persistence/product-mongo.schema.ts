@@ -14,6 +14,9 @@ export class ProductMongoDocument {
 	@Prop({ required: true, trim: true, index: true })
 	category!: string;
 
+	@Prop({ type: String, default: null, index: true })
+	categoryId!: string | null;
+
 	@Prop({ required: true, min: 0 })
 	price!: number;
 
