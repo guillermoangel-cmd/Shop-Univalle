@@ -2,6 +2,7 @@ import {
 	BadRequestException,
 	Body,
 	Controller,
+	Delete,
 	Get,
 	NotFoundException,
 	Param,
@@ -18,6 +19,20 @@ import {
 } from './user-auth.guard.js';
 import { ProfileMongoDocument } from '../persistence/user-mongo.schema.js';
 
+const DEFAULT_PROFILE_IMAGE = '/assets/default_profile/perfil_default.webp';
+
+function toProfileResponse(profile: ProfileMongoDocument) {
+	return {
+		id: profile.userId,
+		userId: profile.userId,
+		nickname: profile.nickname,
+		address: profile.address,
+		shippingCost: profile.shippingCost,
+		imageUrl: profile.imageUrl || DEFAULT_PROFILE_IMAGE,
+		active: profile.active,
+	};
+}
+
 @Controller('profiles')
 export class ProfilesController {
 	constructor(
@@ -32,14 +47,7 @@ export class ProfilesController {
 			.sort({ nickname: 1 })
 			.lean()
 			.exec();
-		return profiles.map((profile) => ({
-			id: profile.userId,
-			userId: profile.userId,
-			nickname: profile.nickname,
-			address: profile.address,
-			shippingCost: profile.shippingCost,
-			active: profile.active,
-		}));
+		return profiles.map(toProfileResponse);
 	}
 
 	@Get('me')
@@ -52,23 +60,16 @@ export class ProfilesController {
 		if (!profile) {
 			throw new BadRequestException('El perfil de tienda aún no está creado');
 		}
-		return {
-			id: profile.userId,
-			userId: profile.userId,
-			nickname: profile.nickname,
-			address: profile.address,
-			shippingCost: profile.shippingCost,
-			active: profile.active,
-		};
+		return toProfileResponse(profile as ProfileMongoDocument);
 	}
 
 	@Patch('me')
 	@UseGuards(UserAuthGuard)
 	async updateMine(
 		@Req() request: AuthenticatedRequest,
-		@Body() input: { nickname?: unknown; address?: unknown; shippingCost?: unknown },
+		@Body() input: { nickname?: unknown; address?: unknown; shippingCost?: unknown; imageUrl?: unknown },
 	) {
-		const update: Partial<Pick<ProfileMongoDocument, 'nickname' | 'address' | 'shippingCost'>> = {};
+		const update: Partial<Pick<ProfileMongoDocument, 'nickname' | 'address' | 'shippingCost' | 'imageUrl'>> = {};
 		if (input.nickname !== undefined) {
 			if (typeof input.nickname !== 'string' || !input.nickname.trim() || input.nickname.trim().length > 60) {
 				throw new BadRequestException('El apodo debe tener entre 1 y 60 caracteres');
@@ -91,6 +92,19 @@ export class ProfilesController {
 			}
 			update.shippingCost = input.shippingCost;
 		}
+		if (input.imageUrl !== undefined) {
+			if (
+				typeof input.imageUrl !== 'string' ||
+				input.imageUrl.length > 500 ||
+				!(
+					input.imageUrl === DEFAULT_PROFILE_IMAGE ||
+					/^\/uploads\/assets\/user_perfiles_img\/[a-f0-9-]+\.(?:png|jpe?g|webp)$/i.test(input.imageUrl)
+				)
+			) {
+				throw new BadRequestException('La imagen de perfil no es válida');
+			}
+			update.imageUrl = input.imageUrl;
+		}
 		if (Object.keys(update).length === 0) {
 			throw new BadRequestException('Indica al menos un dato para actualizar');
 		}
@@ -106,28 +120,42 @@ export class ProfilesController {
 		if (!profile) {
 			throw new BadRequestException('El perfil de tienda aún no está creado');
 		}
-		return {
-			id: profile.userId,
-			userId: profile.userId,
-			nickname: profile.nickname,
-			address: profile.address,
-			shippingCost: profile.shippingCost,
-			active: profile.active,
-		};
+		return toProfileResponse(profile as ProfileMongoDocument);
+	}
+
+	@Delete('me/image')
+	@UseGuards(UserAuthGuard)
+	async cleanupImage(
+		@Req() request: AuthenticatedRequest,
+		@Body() input: { imageUrl?: unknown },
+	) {
+		if (
+			typeof input.imageUrl !== 'string' ||
+			!input.imageUrl ||
+			input.imageUrl === DEFAULT_PROFILE_IMAGE
+		) {
+			throw new BadRequestException('La imagen anterior no es válida');
+		}
+		const profile = await this.profileModel
+			.findOne({ userId: request.user.sub })
+			.lean()
+			.exec();
+		if (!profile) {
+			throw new BadRequestException('El perfil de tienda aún no está creado');
+		}
+		if (profile.imageUrl === input.imageUrl) return { safeToDelete: false };
+		const references = await this.profileModel.countDocuments({
+			imageUrl: input.imageUrl,
+			userId: { $ne: request.user.sub },
+		}).exec();
+		return { safeToDelete: references === 0 };
 	}
 
 	@Get('manage')
 	@UseGuards(AdministrativeGuard)
 	async listForModeration() {
 		const profiles = await this.profileModel.find().sort({ nickname: 1 }).lean().exec();
-		return profiles.map((profile) => ({
-			id: profile.userId,
-			userId: profile.userId,
-			nickname: profile.nickname,
-			address: profile.address,
-			shippingCost: profile.shippingCost,
-			active: profile.active,
-		}));
+		return profiles.map(toProfileResponse);
 	}
 
 	@Get(':id')
@@ -139,14 +167,7 @@ export class ProfilesController {
 		if (!profile) {
 			throw new NotFoundException('La tienda no está disponible');
 		}
-		return {
-			id: profile.userId,
-			userId: profile.userId,
-			nickname: profile.nickname,
-			address: profile.address,
-			shippingCost: profile.shippingCost,
-			active: profile.active,
-		};
+		return toProfileResponse(profile as ProfileMongoDocument);
 	}
 
 	@Patch(':id/status')
@@ -165,13 +186,6 @@ export class ProfilesController {
 		if (!profile) {
 			throw new BadRequestException('No se encontró el perfil indicado');
 		}
-		return {
-			id: profile.userId,
-			userId: profile.userId,
-			nickname: profile.nickname,
-			address: profile.address,
-			shippingCost: profile.shippingCost,
-			active: profile.active,
-		};
+		return toProfileResponse(profile as ProfileMongoDocument);
 	}
 }

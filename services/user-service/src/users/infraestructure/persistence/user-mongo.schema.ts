@@ -48,6 +48,9 @@ export class ProfileMongoDocument {
 	@Prop({ default: '', trim: true, maxlength: 240 })
 	address!: string;
 
+	@Prop({ default: '' })
+	imageUrl!: string;
+
 	@Prop({ required: true, min: 0, default: 0 })
 	shippingCost!: number;
 

@@ -9,6 +9,7 @@ import { ActivateCategoryUseCase } from './application/use-cases/activate-catego
 import { GetProductUseCase } from './application/use-cases/get-product.use-case.js';
 import { ListProductsUseCase } from './application/use-cases/list-products.use-case.js';
 import { SetProductActiveUseCase } from './application/use-cases/set-product-active.use-case.js';
+import { UpdateProductUseCase } from './application/use-cases/update-product.use-case.js';
 import {
 	PRODUCT_REPOSITORY,
 	type ProductRepository,
@@ -100,6 +101,12 @@ import {
 			useFactory: (repository: ProductRepository) =>
 				new SetProductActiveUseCase(repository),
 			inject: [PRODUCT_REPOSITORY],
+		},
+		{
+			provide: UpdateProductUseCase,
+			useFactory: (products: ProductRepository, categories: CategoryRepository) =>
+				new UpdateProductUseCase(products, categories),
+			inject: [PRODUCT_REPOSITORY, CATEGORY_REPOSITORY],
 		},
 	],
 })

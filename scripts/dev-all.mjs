@@ -83,7 +83,7 @@ const services = [
       PORT: '3002',
       MONGODB_URI: getLocalMongoUri(
         baseEnv.CATALOG_MONGODB_URI,
-        'mongodb://127.0.0.1:27017/univalle_catalog',
+        'mongodb://127.0.0.1:27017/univalle-catalog',
       ),
     },
   },

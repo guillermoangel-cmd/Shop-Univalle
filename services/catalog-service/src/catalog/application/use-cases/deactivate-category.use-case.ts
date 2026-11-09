@@ -11,12 +11,12 @@ export class DeactivateCategoryUseCase {
 		private readonly productRepository: ProductRepository,
 	) {}
 
-	async execute(id: string, profileId?: string) {
+	async execute(id: string, profileId?: string, allowProducts = false) {
 		const category = await this.categoryRepository.findById(id, profileId);
 		if (!category || !category.active) {
 			throw new CategoryNotFoundError('La categoría no existe o ya está inactiva');
 		}
-		if (await this.productRepository.findByCategoryId(id, profileId)) {
+		if (!allowProducts && await this.productRepository.findByCategoryId(id, profileId)) {
 			throw new CategoryHasProductsError(
 				'Reasigna o elimina los productos antes de desactivar esta categoría',
 			);

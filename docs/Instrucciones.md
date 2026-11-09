@@ -130,7 +130,7 @@ Entre las bases de datos previstas se encuentran:
 | Base de datos | Microservicio | Propósito |
 |---|---|---|
 | `univalle_users` | Users Service | Usuarios y correos institucionales. |
-| `univalle_catalog` | Catalog Service | Productos, categorías y etiquetas. |
+| `univalle-catalog` | Catalog Service | Productos, categorías y etiquetas. |
 | `univalle_cart` | Cart Service | Carritos de compra y productos seleccionados. |
 | `univalle_payments` | Payments Service | Información y registros de pagos. |
 

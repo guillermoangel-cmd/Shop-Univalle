@@ -115,7 +115,7 @@ try {
         -RelativePath 'services\catalog-service' `
         -NpmScript 'start:dev' `
         -Environment @{
-            MONGODB_URI = 'mongodb://127.0.0.1:27017/univalle_catalog'
+            MONGODB_URI = 'mongodb://127.0.0.1:27017/univalle-catalog'
             PORT = '3002'
             JWT_SECRET = $jwtSecret
         }

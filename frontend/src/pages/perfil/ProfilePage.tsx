@@ -6,9 +6,11 @@ import {
   getMyProfile,
   selectCustomerAddress,
   updateMyProfile,
+  DEFAULT_PROFILE_IMAGE,
   type CustomerAddress,
   type StoreProfile,
 } from '../../services/usersApi'
+import { deleteProfileImage, uploadProfileImage } from '../../services/uploadsApi'
 import '../../App.css'
 
 interface ProfilePageProps {
@@ -24,6 +26,9 @@ function ProfilePage({ accessToken, onBack, onLogout }: ProfilePageProps) {
   const [nickname, setNickname] = useState('')
   const [shopAddress, setShopAddress] = useState('')
   const [shippingCost, setShippingCost] = useState('0')
+  const [profileImage, setProfileImage] = useState(DEFAULT_PROFILE_IMAGE)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState(DEFAULT_PROFILE_IMAGE)
   const [addressLabel, setAddressLabel] = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
   const [addressDetails, setAddressDetails] = useState('')
@@ -37,6 +42,8 @@ function ProfilePage({ accessToken, onBack, onLogout }: ProfilePageProps) {
       .then(([shop, user]) => {
         if (!active) return
         setProfile(shop)
+        setProfileImage(shop.imageUrl || DEFAULT_PROFILE_IMAGE)
+        setImagePreview(shop.imageUrl || DEFAULT_PROFILE_IMAGE)
         setNickname(shop.nickname)
         setShopAddress(shop.address)
         setShippingCost(String(shop.shippingCost))
@@ -51,21 +58,69 @@ function ProfilePage({ accessToken, onBack, onLogout }: ProfilePageProps) {
     }
   }, [accessToken])
 
+  useEffect(() => () => {
+    if (imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
+  }, [imagePreview])
+
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setBusy(true)
     setError('')
     setMessage('')
     try {
+      const imageUrl = imageFile
+        ? await uploadProfileImage(accessToken, imageFile)
+        : profileImage
+      const previousImageUrl = profileImage
       const saved = await updateMyProfile(accessToken, {
         nickname: nickname.trim(),
         address: shopAddress.trim(),
         shippingCost: Number(shippingCost),
+        imageUrl,
       })
       setProfile(saved)
+      setProfileImage(saved.imageUrl)
+      setImagePreview(saved.imageUrl)
+      setImageFile(null)
+      if (previousImageUrl !== DEFAULT_PROFILE_IMAGE && imageUrl !== previousImageUrl) {
+        const deleted = await deleteProfileImage(accessToken, previousImageUrl)
+        if (!deleted) {
+          setMessage('La tienda se guardó; la imagen anterior se conserva porque aún está en uso.')
+          return
+        }
+      }
       setMessage('Los datos de tu tienda se guardaron.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo guardar el perfil.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function removeProfileImage() {
+    if (!profile || profileImage === DEFAULT_PROFILE_IMAGE && !imageFile) return
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      const previousImageUrl = profileImage
+      const saved = await updateMyProfile(accessToken, {
+        imageUrl: DEFAULT_PROFILE_IMAGE,
+      })
+      setProfile(saved)
+      setProfileImage(DEFAULT_PROFILE_IMAGE)
+      setImagePreview(DEFAULT_PROFILE_IMAGE)
+      setImageFile(null)
+      if (previousImageUrl !== DEFAULT_PROFILE_IMAGE) {
+        const deleted = await deleteProfileImage(accessToken, previousImageUrl)
+        if (!deleted) {
+          setMessage('Se restauró la imagen predeterminada; la imagen anterior se conserva porque aún está en uso.')
+          return
+        }
+      }
+      setMessage('Se restauró la imagen predeterminada de la tienda.')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo quitar la imagen.')
     } finally {
       setBusy(false)
     }
@@ -145,6 +200,29 @@ function ProfilePage({ accessToken, onBack, onLogout }: ProfilePageProps) {
             <span>Apodo de la tienda</span>
             <input required maxLength={60} value={nickname} onChange={(event) => setNickname(event.target.value)} />
           </label>
+          <div className="store-image-editor">
+            <img src={imagePreview} alt="Imagen representativa de la tienda" />
+            <label>
+              <span>Imagen de la tienda</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null
+                  setImageFile(file)
+                  setImagePreview(file ? URL.createObjectURL(file) : profileImage)
+                }}
+              />
+            </label>
+            <button
+              className="admin-secondary-button"
+              type="button"
+              disabled={busy || (profileImage === DEFAULT_PROFILE_IMAGE && !imageFile)}
+              onClick={() => void removeProfileImage()}
+            >
+              Usar imagen predeterminada
+            </button>
+          </div>
           <label>
             <span>Dirección de la tienda</span>
             <input maxLength={240} value={shopAddress} onChange={(event) => setShopAddress(event.target.value)} />

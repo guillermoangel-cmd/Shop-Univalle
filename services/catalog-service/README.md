@@ -46,7 +46,7 @@ npm test -- --runInBand
 npm run build
 ```
 
-Define `MONGODB_URI` (por defecto `mongodb://127.0.0.1:27017/univalle_catalog`) y `JWT_SECRET`. Configura `PORT` (por defecto `3000`).
+Define `MONGODB_URI` (por defecto `mongodb://127.0.0.1:27017/univalle-catalog`) y `JWT_SECRET`. Configura `PORT` (por defecto `3000`).
 
 ## Capas
 
