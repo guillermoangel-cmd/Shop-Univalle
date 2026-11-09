@@ -36,6 +36,8 @@ export class OrderMongoRepositoryAdapter implements OrderRepository {
         order.promoCode,
         order.status,
         order.createdAt,
+        order.storeProfileId,
+        order.deliveryAddress,
       );
       this.memoryOrders.unshift(saved);
       return saved;
@@ -45,6 +47,8 @@ export class OrderMongoRepositoryAdapter implements OrderRepository {
       const record = await this.orderModel.create({
         orderNumber: order.orderNumber,
         userId: order.userId,
+        storeProfileId: order.storeProfileId,
+        deliveryAddress: order.deliveryAddress,
         checkoutMode: order.checkoutMode,
         items: order.items.map((item) => ({
           productId: item.productId,
@@ -84,6 +88,8 @@ export class OrderMongoRepositoryAdapter implements OrderRepository {
         order.promoCode,
         order.status,
         order.createdAt,
+        order.storeProfileId,
+        order.deliveryAddress,
       );
       this.memoryOrders.unshift(saved);
       return saved;
@@ -153,6 +159,8 @@ export class OrderMongoRepositoryAdapter implements OrderRepository {
       record.promoCode ?? null,
       record.status,
       record.createdAt ?? new Date(),
+      record.storeProfileId ?? 'default-store',
+      record.deliveryAddress ?? '',
     );
   }
 }

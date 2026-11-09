@@ -63,55 +63,70 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
     return Number(this.productModel?.db?.readyState) === 1;
   }
 
-  async findAll(): Promise<ProductEntity[]> {
+  async findAll(profileId?: string, includeInactive = false): Promise<ProductEntity[]> {
     if (!this.isMongoConnected()) {
-      return Array.from(this.memoryProducts.values());
+      const products = Array.from(this.memoryProducts.values());
+      return products.filter((product) =>
+        (!profileId || product.profileId === profileId) &&
+        (includeInactive || product.active),
+      );
     }
 
     try {
-      const records = await this.productModel.find().sort({ name: 1 }).exec();
+      const filter = {
+        ...(profileId ? { profileId } : {}),
+        ...(!includeInactive ? { active: true } : {}),
+      };
+      const records = await this.productModel.find(filter).sort({ name: 1 }).exec();
       if (records.length === 0) {
-        return Array.from(this.memoryProducts.values());
+        return [];
       }
       return records.map((record) => this.toEntity(record));
     } catch {
-      return Array.from(this.memoryProducts.values());
+      return [];
     }
   }
 
   async findById(id: string): Promise<ProductEntity | null> {
     if (!this.isMongoConnected()) {
-      return this.memoryProducts.get(id) ?? null;
+      const product = this.memoryProducts.get(id);
+      return product?.active ? product : null;
     }
 
     if (!Types.ObjectId.isValid(id)) {
-      return this.memoryProducts.get(id) ?? null;
+      const product = this.memoryProducts.get(id);
+      return product?.active ? product : null;
     }
 
     try {
-      const record = await this.productModel.findById(id).exec();
-      return record ? this.toEntity(record) : (this.memoryProducts.get(id) ?? null);
+      const record = await this.productModel.findOne({ _id: id, active: true }).exec();
+      const fallback = this.memoryProducts.get(id);
+      return record ? this.toEntity(record) : (fallback?.active ? fallback : null);
     } catch {
-      return this.memoryProducts.get(id) ?? null;
+      const product = this.memoryProducts.get(id);
+      return product?.active ? product : null;
     }
   }
 
-  async findByCategoryId(id: string): Promise<number> {
+  async findByCategoryId(id: string, profileId?: string): Promise<number> {
     if (!this.isMongoConnected()) {
       return Array.from(this.memoryProducts.values()).filter(
-        (p) => p.categoryId === id,
+        (p) => p.categoryId === id && (!profileId || p.profileId === profileId),
       ).length;
     }
     try {
-      return await this.productModel.countDocuments({ categoryId: id }).exec();
+      return await this.productModel.countDocuments({
+        categoryId: id,
+        ...(profileId ? { profileId } : {}),
+      }).exec();
     } catch {
       return 0;
     }
   }
 
-  async updateCategoryName(categoryId: string, name: string): Promise<void> {
+  async updateCategoryName(categoryId: string, name: string, profileId?: string): Promise<void> {
     for (const [key, p] of this.memoryProducts.entries()) {
-      if (p.categoryId === categoryId) {
+      if (p.categoryId === categoryId && (!profileId || p.profileId === profileId)) {
         this.memoryProducts.set(
           key,
           new ProductEntity(
@@ -123,6 +138,8 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
             p.price,
             p.stock,
             p.categoryId,
+            p.profileId,
+            p.active,
           ),
         );
       }
@@ -131,7 +148,10 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
     if (this.isMongoConnected()) {
       try {
         await this.productModel
-          .updateMany({ categoryId }, { $set: { category: name } })
+          .updateMany(
+            { categoryId, ...(profileId ? { profileId } : {}) },
+            { $set: { category: name } },
+          )
           .exec();
       } catch {
         // ignore
@@ -151,6 +171,8 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
         product.price,
         product.stock,
         product.categoryId,
+        product.profileId,
+        product.active,
       );
       this.memoryProducts.set(id, saved);
       return saved;
@@ -164,9 +186,37 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
       categoryId: product.categoryId,
       price: product.price,
       stock: product.stock,
+      profileId: product.profileId ?? '',
+      active: product.active,
     });
 
     return this.toEntity(record);
+  }
+
+  async setActive(id: string, active: boolean): Promise<ProductEntity | null> {
+    if (!this.isMongoConnected()) {
+      const product = this.memoryProducts.get(id);
+      if (!product) return null;
+      const updated = new ProductEntity(
+        product.id,
+        product.name,
+        product.description,
+        product.imageUrl,
+        product.category,
+        product.price,
+        product.stock,
+        product.categoryId,
+        product.profileId,
+        active,
+      );
+      this.memoryProducts.set(id, updated);
+      return updated;
+    }
+    if (!Types.ObjectId.isValid(id)) return null;
+    const record = await this.productModel
+      .findByIdAndUpdate(id, { $set: { active } }, { new: true, runValidators: true })
+      .exec();
+    return record ? this.toEntity(record) : null;
   }
 
   private toEntity(
@@ -181,6 +231,8 @@ export class ProductMongoRepositoryAdapter implements ProductRepository {
       record.price,
       record.stock,
       record.categoryId ?? null,
+      record.profileId ?? null,
+      record.active ?? true,
     );
   }
 }

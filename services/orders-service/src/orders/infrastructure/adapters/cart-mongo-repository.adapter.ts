@@ -9,6 +9,11 @@ import { CartMongoDocument } from '../persistence/cart-mongo.schema.js';
 @Injectable()
 export class CartMongoRepositoryAdapter implements CartRepository {
   private readonly memoryCarts = new Map<string, CartEntity>();
+  private indexMigration: Promise<void> | null = null;
+
+  private cartKey(userId: string, storeProfileId: string): string {
+    return `${userId}:${storeProfileId}`;
+  }
 
   constructor(
     @InjectModel(CartMongoDocument.name)
@@ -19,16 +24,43 @@ export class CartMongoRepositoryAdapter implements CartRepository {
     return Number(this.cartModel?.db?.readyState) === 1;
   }
 
-  async findByUserId(userId: string): Promise<CartEntity | null> {
+  private async migrateCartIndexes(): Promise<void> {
+    if (!this.indexMigration) {
+      this.indexMigration = (async () => {
+        await this.cartModel.collection.updateMany(
+          { storeProfileId: { $exists: false } },
+          { $set: { storeProfileId: 'default-store', shippingCost: 8000 } },
+        );
+        const indexes = await this.cartModel.collection.indexes();
+        for (const index of indexes) {
+          if (
+            index.unique &&
+            index.key.userId === 1 &&
+            Object.keys(index.key).length === 1 &&
+            index.name
+          ) {
+            await this.cartModel.collection.dropIndex(index.name);
+          }
+        }
+      })();
+    }
+    await this.indexMigration;
+  }
+
+  async findByUserId(
+    userId: string,
+    storeProfileId = 'default-store',
+  ): Promise<CartEntity | null> {
     if (!this.isMongoConnected()) {
-      return this.memoryCarts.get(userId) ?? null;
+      return this.memoryCarts.get(this.cartKey(userId, storeProfileId)) ?? null;
     }
 
+    await this.migrateCartIndexes();
     try {
-      const record = await this.cartModel.findOne({ userId }).exec();
+      const record = await this.cartModel.findOne({ userId, storeProfileId }).exec();
       return record ? this.toEntity(record) : null;
     } catch {
-      return this.memoryCarts.get(userId) ?? null;
+      return this.memoryCarts.get(this.cartKey(userId, storeProfileId)) ?? null;
     }
   }
 
@@ -40,17 +72,22 @@ export class CartMongoRepositoryAdapter implements CartRepository {
         cart.items,
         cart.promoCode,
         cart.discountRate,
+        cart.storeProfileId,
+        cart.shippingCost,
       );
-      this.memoryCarts.set(cart.userId, saved);
+      this.memoryCarts.set(this.cartKey(cart.userId, cart.storeProfileId), saved);
       return saved;
     }
 
+    await this.migrateCartIndexes();
     try {
       const record = await this.cartModel
         .findOneAndUpdate(
-          { userId: cart.userId },
+          { userId: cart.userId, storeProfileId: cart.storeProfileId },
           {
             userId: cart.userId,
+            storeProfileId: cart.storeProfileId,
+            shippingCost: cart.shippingCost,
             items: cart.items.map((item) => ({
               productId: item.productId,
               name: item.name,
@@ -65,7 +102,7 @@ export class CartMongoRepositoryAdapter implements CartRepository {
             promoCode: cart.promoCode,
             discountRate: cart.discountRate,
           },
-          { upsert: true, new: true },
+          { upsert: true, new: true, setDefaultsOnInsert: true },
         )
         .exec();
 
@@ -77,8 +114,10 @@ export class CartMongoRepositoryAdapter implements CartRepository {
         cart.items,
         cart.promoCode,
         cart.discountRate,
+        cart.storeProfileId,
+        cart.shippingCost,
       );
-      this.memoryCarts.set(cart.userId, saved);
+      this.memoryCarts.set(this.cartKey(cart.userId, cart.storeProfileId), saved);
       return saved;
     }
   }
@@ -105,6 +144,8 @@ export class CartMongoRepositoryAdapter implements CartRepository {
       items,
       record.promoCode ?? null,
       record.discountRate ?? 0,
+      record.storeProfileId ?? 'default-store',
+      record.shippingCost ?? 8000,
     );
   }
 }

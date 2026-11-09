@@ -6,7 +6,9 @@ import {
 	HttpException,
 	HttpStatus,
 	Param,
+	Patch,
 	Post,
+	Query,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
@@ -24,9 +26,19 @@ export class ProductsController {
 			this.config.get<string>('CATALOG_SERVICE_URL') ?? 'http://localhost:3002';
 	}
 
+	@Get('manage')
+	listForManagement(
+		@Query('profileId') profileId?: string,
+		@Headers('authorization') authorization?: string,
+	) {
+		const query = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
+		return this.forward('get', `/products/manage${query}`, undefined, authorization);
+	}
+
 	@Get()
-	findAll() {
-		return this.forward('get', '/products');
+	findAll(@Query('profileId') profileId?: string) {
+		const query = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
+		return this.forward('get', `/products${query}`);
 	}
 
 	@Get(':id')
@@ -39,8 +51,22 @@ export class ProductsController {
 		return this.forward('post', '/products', input, authorization);
 	}
 
+	@Patch(':id/status')
+	setStatus(
+		@Param('id') id: string,
+		@Body() input: unknown,
+		@Headers('authorization') authorization?: string,
+	) {
+		return this.forward(
+			'patch',
+			`/products/${encodeURIComponent(id)}/status`,
+			input,
+			authorization,
+		);
+	}
+
 	private async forward(
-		method: 'get' | 'post',
+		method: 'get' | 'post' | 'patch',
 		path: string,
 		input?: unknown,
 		authorization?: string,

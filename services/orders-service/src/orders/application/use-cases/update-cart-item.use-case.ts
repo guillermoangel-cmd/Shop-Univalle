@@ -14,12 +14,13 @@ export class UpdateCartItemUseCase {
     userId: string,
     productId: string,
     patch: UpdateCartItemInput,
+    storeProfileId = 'default-store',
+    shippingCost = 8000,
   ): Promise<CartEntity> {
     const current =
-      (await this.cartRepository.findByUserId(userId)) ??
-      CartEntity.createEmpty(userId);
-    const updated = current.updateItem(productId, patch);
+      (await this.cartRepository.findByUserId(userId, storeProfileId)) ??
+      CartEntity.createEmpty(userId, storeProfileId, shippingCost);
+    const updated = current.withShippingCost(shippingCost).updateItem(productId, patch);
     return this.cartRepository.save(updated);
   }
 }
-

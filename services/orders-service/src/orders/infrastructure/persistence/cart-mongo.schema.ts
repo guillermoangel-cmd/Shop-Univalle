@@ -35,8 +35,14 @@ export const CartItemSubdocumentSchema =
 
 @Schema({ collection: 'carts', timestamps: true })
 export class CartMongoDocument {
-  @Prop({ required: true, unique: true, trim: true, index: true })
+  @Prop({ required: true, trim: true, index: true })
   userId!: string;
+
+  @Prop({ required: true, trim: true, default: 'default-store', index: true })
+  storeProfileId!: string;
+
+  @Prop({ required: true, min: 0, default: 8000 })
+  shippingCost!: number;
 
   @Prop({ type: [CartItemSubdocumentSchema], default: [] })
   items!: CartItemSubdocument[];
@@ -49,4 +55,4 @@ export class CartMongoDocument {
 }
 
 export const CartMongoSchema = SchemaFactory.createForClass(CartMongoDocument);
-
+CartMongoSchema.index({ userId: 1, storeProfileId: 1 }, { unique: true });

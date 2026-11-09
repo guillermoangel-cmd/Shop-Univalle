@@ -19,11 +19,13 @@ src/orders/
 
 ## Endpoints Principales (Puerto local: `3004`)
 
-- `GET /cart?userId=<id>` – Consultar carrito e importes calculados (subtotal, envío, IVA 19%, total final).
+- `GET /cart?storeProfileId=<id>` – Consultar el carrito del comprador autenticado para una tienda.
 - `POST /cart/items` – Añadir producto o incrementar cantidad en el carrito.
 - `PATCH /cart/items/:productId` – Actualizar cantidad, selección (`selected`) o favorito (`favorite`).
-- `DELETE /cart/items/:productId?userId=<id>` – Eliminar un producto del carrito.
-- `DELETE /cart?userId=<id>` – Vaciar el carrito (`ELIMINAR TODO`).
+- `DELETE /cart/items/:productId?storeProfileId=<id>` – Eliminar un producto del carrito.
+- `DELETE /cart?storeProfileId=<id>` – Vaciar el carrito (`ELIMINAR TODO`).
 - `POST /cart/promo` – Aplicar código promocional (`UNIVALLE10`, `UNIVALLE20`, `UV75`).
 - `POST /orders/checkout` – Procesar pedido (`PROCEDER AL PAGO` / `CHECKOUT COMO INVITADO`).
-- `GET /orders?userId=<id>` – Consultar historial de órdenes creadas.
+- `GET /orders` – Consultar el historial de órdenes del comprador autenticado.
+
+Todos los endpoints requieren un JWT válido. La identidad se toma del `sub` firmado, no del `userId` enviado por el navegador. La clave del carrito es la pareja comprador/tienda; las órdenes guardan su perfil de tienda y la dirección seleccionada al pagar. El Gateway verifica que los productos pertenezcan a esa tienda y obtiene el costo de envío vigente del perfil.

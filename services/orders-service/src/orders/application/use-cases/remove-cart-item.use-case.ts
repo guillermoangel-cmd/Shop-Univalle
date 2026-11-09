@@ -4,12 +4,16 @@ import type { CartRepository } from '../../domain/ports/cart.repository.js';
 export class RemoveCartItemUseCase {
   constructor(private readonly cartRepository: CartRepository) {}
 
-  async execute(userId: string, productId: string): Promise<CartEntity> {
+  async execute(
+    userId: string,
+    productId: string,
+    storeProfileId = 'default-store',
+    shippingCost = 8000,
+  ): Promise<CartEntity> {
     const current =
-      (await this.cartRepository.findByUserId(userId)) ??
-      CartEntity.createEmpty(userId);
-    const updated = current.removeItem(productId);
+      (await this.cartRepository.findByUserId(userId, storeProfileId)) ??
+      CartEntity.createEmpty(userId, storeProfileId, shippingCost);
+    const updated = current.withShippingCost(shippingCost).removeItem(productId);
     return this.cartRepository.save(updated);
   }
 }
-

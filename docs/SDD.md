@@ -21,10 +21,10 @@ La aplicación web esta desarrollada como proyecto académico. Su arquitectura e
 | Componente | Estado | Persistencia / interfaz |
 |---|---|---|
 | API Gateway | En implementación | Proxy REST a catálogo, categorías, usuarios, carrito y órdenes |
-| Catálogo | MVP ampliado | GET `/products`, GET `/categories`; escritura con rol `ADMINISTRADOR`; MongoDB independiente (`univalle_catalog`) |
-| Usuarios | Registro y login | POST `/users`, POST `/auth/login`, POST `/auth/activate`, JWT, MongoDB independiente |
-| Frontend | Catálogo y Carrito funcional | Vite/React; panel admin de catálogo y vista `/cart` conectada a Orders Service |
-| Pedidos | MVP implementado | Carrito persistente, códigos promocionales, creación de órdenes e historial en MongoDB (`univalle_orders`) |
+| Catálogo | Tiendas por perfil | Productos y categorías aislados por perfil; moderación por `ADMINISTRATIVO`; MongoDB independiente (`univalle_catalog`) |
+| Usuarios | Registro, perfiles y direcciones | JWT, colección `perfiles` y direcciones del comprador en `usuarios`, MongoDB independiente |
+| Frontend | Tiendas, perfil y carrito | Vite/React; ajustes de tienda, selección de dirección, moderación y vista `/cart` |
+| Pedidos | MVP implementado | Carrito por comprador/tienda, costo de envío por perfil, checkout e historial en MongoDB (`univalle_orders`) |
 | Pagos | Pendiente | Proveedor de pagos y manejo seguro de transacciones |
 | Búsqueda | Pendiente | Índice y API de búsqueda |
 | Recomendación | Pendiente | Perfil de preferencias y API de recomendaciones |
@@ -33,9 +33,9 @@ La aplicación web esta desarrollada como proyecto académico. Su arquitectura e
 
 - `UNIVERSITY_EMAIL_DOMAINS` es una lista configurable para filtrar dominios. Un dominio coincidente no demuestra que la persona controle la cuenta ni que siga vinculada a la Universidad. Antes de producción se requiere verificación institucional por correo o integración con identidad/SSO de Univalle.
 - Los dominios oficiales aceptados deben confirmarse con el equipo/universidad. No se fija uno por defecto.
-- El servicio de usuarios hashea contraseñas y emite JWT al iniciar sesión. Todavía faltan verificación de correo institucional real, recuperación de cuenta y un flujo de administración de roles.
-- Las cuentas administradoras se provisionan manualmente; no hay un flujo de autoservicio para otorgar el rol.
-- Las escrituras del catálogo validan el JWT y requieren el rol `ADMINISTRADOR`. Este rol se asigna solo en `correos_institucionales` por un operador; la cuenta existente debe volver a iniciar sesión después de su promoción.
+- El servicio de usuarios hashea contraseñas y emite JWT al iniciar sesión. Todavía faltan verificación de correo institucional real y recuperación de cuenta.
+- No existe el rol `ADMINISTRADOR`; `ADMINISTRATIVO` gestiona su propia tienda y además modera perfiles y productos.
+- Catálogo y Pedidos validan el JWT. Pedidos deriva la identidad del comprador del `sub` firmado; el Gateway verifica la pertenencia de los productos y el costo de envío vigente de la tienda.
 - No se debe integrar una pasarela de pago real ni almacenar datos de tarjeta en este proyecto sin definir el proveedor y el alcance de cumplimiento.
 
 ## SOLID y pruebas

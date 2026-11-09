@@ -9,6 +9,7 @@ import {
 	Param,
 	Patch,
 	Post,
+	Query,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
@@ -27,8 +28,9 @@ export class CategoriesController {
 	}
 
 	@Get()
-	findAll() {
-		return this.forward('get', '/categories');
+	findAll(@Query('profileId') profileId?: string) {
+		const query = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
+		return this.forward('get', `/categories${query}`);
 	}
 
 	@Get('manage')

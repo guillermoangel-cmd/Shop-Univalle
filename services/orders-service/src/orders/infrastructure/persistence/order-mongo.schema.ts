@@ -12,6 +12,12 @@ export class OrderMongoDocument {
   @Prop({ required: true, trim: true, index: true })
   userId!: string;
 
+  @Prop({ required: true, trim: true, index: true, default: 'default-store' })
+  storeProfileId!: string;
+
+  @Prop({ required: true, trim: true, default: '' })
+  deliveryAddress!: string;
+
   @Prop({ required: true, enum: ['AUTHENTICATED', 'GUEST'], default: 'AUTHENTICATED' })
   checkoutMode!: 'AUTHENTICATED' | 'GUEST';
 
@@ -51,4 +57,3 @@ export class OrderMongoDocument {
 
 export const OrderMongoSchema =
   SchemaFactory.createForClass(OrderMongoDocument);
-

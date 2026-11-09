@@ -10,14 +10,14 @@ export class UpdateCategoryUseCase {
 		private readonly productRepository: ProductRepository,
 	) {}
 
-	async execute(id: string, input: Partial<CategoryData>) {
-		const category = await this.categoryRepository.findById(id);
+	async execute(id: string, input: Partial<CategoryData>, profileId?: string) {
+		const category = await this.categoryRepository.findById(id, profileId);
 		if (!category || !category.active) {
 			throw new CategoryNotFoundError('La categoría no existe o está inactiva');
 		}
 
 		const updated = category.update(input);
-		const existing = await this.categoryRepository.findByName(updated.name);
+		const existing = await this.categoryRepository.findByName(updated.name, profileId);
 		if (existing && existing.id !== id) {
 			throw new CategoryAlreadyExistsError('Ya existe una categoría con ese nombre');
 		}
@@ -26,7 +26,7 @@ export class UpdateCategoryUseCase {
 			throw new CategoryNotFoundError('La categoría dejó de existir durante la actualización');
 		}
 		if (result.name !== category.name) {
-			await this.productRepository.updateCategoryName(id, result.name);
+			await this.productRepository.updateCategoryName(id, result.name, profileId);
 		}
 		return result;
 	}

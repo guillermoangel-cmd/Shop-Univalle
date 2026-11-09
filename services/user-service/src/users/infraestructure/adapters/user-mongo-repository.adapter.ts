@@ -9,6 +9,7 @@ import type {
 import { UserRepository } from '../../domain/ports/repositories/user.repository.js';
 import {
 	AuthorizedEmailMongoDocument,
+	ProfileMongoDocument,
 	UserMongoDocument,
 } from '../persistence/user-mongo.schema.js';
 
@@ -21,6 +22,8 @@ export class UserRepositoryAdapter
 		private readonly userModel: Model<UserMongoDocument>,
 		@InjectModel(AuthorizedEmailMongoDocument.name)
 		private readonly authorizedEmailModel: Model<AuthorizedEmailMongoDocument>,
+		@InjectModel(ProfileMongoDocument.name)
+		private readonly profileModel: Model<ProfileMongoDocument>,
 	) {}
 
 	async findAuthorizedEmail(
@@ -37,14 +40,29 @@ export class UserRepositoryAdapter
 		return {
 			email: record.email,
 			name: `${record.nombre} ${record.apellido}`.trim(),
-			role: record.rol,
+			role: String(record.rol) === 'ADMINISTRADOR'
+				? 'ADMINISTRATIVO'
+				: record.rol,
 			active: record.authorized,
 		};
 	}
 
 	async findUserByEmail(email: string): Promise<UserEntity | null> {
 		const record = await this.userModel.findOne({ email }).exec();
-		return record ? this.toEntity(record) : null;
+		if (!record) return null;
+		await this.profileModel.updateOne(
+			{ userId: String(record._id) },
+			{
+				$setOnInsert: {
+					nickname: record.nombre,
+					address: '',
+					shippingCost: 0,
+					active: true,
+				},
+			},
+			{ upsert: true },
+		).exec();
+		return this.toEntity(record);
 	}
 
 	async save(user: UserEntity): Promise<UserEntity> {
@@ -56,6 +74,18 @@ export class UserRepositoryAdapter
 			estado: user.state,
 			emailVerified: user.emailVerified,
 		});
+		try {
+			await this.profileModel.create({
+				userId: String(record._id),
+				nickname: user.name,
+				address: '',
+				shippingCost: 0,
+				active: true,
+			});
+		} catch (error) {
+			await this.userModel.deleteOne({ _id: record._id }).exec();
+			throw error;
+		}
 
 		return this.toEntity(record);
 	}
@@ -66,7 +96,9 @@ export class UserRepositoryAdapter
 			record.nombre,
 			record.email,
 			record.passwordHash,
-			record.rol,
+			String(record.rol) === 'ADMINISTRADOR'
+				? 'ADMINISTRATIVO'
+				: record.rol,
 			record.estado,
 			record.emailVerified,
 		);

@@ -1,6 +1,7 @@
 export interface CategoryData {
 	name: string;
 	description?: string;
+	profileId?: string;
 }
 
 export class InvalidCategoryError extends Error {}
@@ -11,6 +12,7 @@ export class CategoryEntity {
 		public readonly name: string,
 		public readonly description: string,
 		public readonly active: boolean,
+		public readonly profileId: string | null = null,
 	) {}
 
 	static create(data: CategoryData): CategoryEntity {
@@ -32,7 +34,13 @@ export class CategoryEntity {
 			throw new InvalidCategoryError('La descripción no puede superar 240 caracteres');
 		}
 
-		return new CategoryEntity(null, name, description, true);
+		return new CategoryEntity(
+			null,
+			name,
+			description,
+			true,
+			typeof data.profileId === 'string' ? data.profileId.trim() || null : null,
+		);
 	}
 
 	update(data: Partial<CategoryData>): CategoryEntity {
@@ -49,14 +57,20 @@ export class CategoryEntity {
 			name: data.name ?? this.name,
 			description: data.description ?? this.description,
 		});
-		return new CategoryEntity(this.id, updated.name, updated.description, this.active);
+		return new CategoryEntity(
+			this.id,
+			updated.name,
+			updated.description,
+			this.active,
+			this.profileId,
+		);
 	}
 
 	deactivate(): CategoryEntity {
-		return new CategoryEntity(this.id, this.name, this.description, false);
+		return new CategoryEntity(this.id, this.name, this.description, false, this.profileId);
 	}
 
 	activate(): CategoryEntity {
-		return new CategoryEntity(this.id, this.name, this.description, true);
+		return new CategoryEntity(this.id, this.name, this.description, true, this.profileId);
 	}
 }

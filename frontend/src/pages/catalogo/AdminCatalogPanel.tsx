@@ -251,10 +251,10 @@ function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogP
     <section className="admin-catalog-panel" aria-labelledby="admin-catalog-title">
       <div className="admin-panel-heading">
         <div>
-          <p className="eyebrow">Administración</p>
-          <h2 id="admin-catalog-title">Gestionar catálogo</h2>
+          <p className="eyebrow">Mi perfil de tienda</p>
+          <h2 id="admin-catalog-title">Gestionar mis productos y categorías</h2>
         </div>
-        <span>Solo administradores</span>
+        <span>Solo puedes gestionar los datos de tu tienda</span>
       </div>
 
       <div className="admin-panel-grid">

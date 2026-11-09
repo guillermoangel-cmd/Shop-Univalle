@@ -4,8 +4,8 @@ import type { CategoryRepository } from '../../domain/ports/category.repository.
 export class ActivateCategoryUseCase {
 	constructor(private readonly categoryRepository: CategoryRepository) {}
 
-	async execute(id: string) {
-		const category = await this.categoryRepository.findById(id);
+	async execute(id: string, profileId?: string) {
+		const category = await this.categoryRepository.findById(id, profileId);
 		if (!category) {
 			throw new CategoryNotFoundError('La categoría no existe');
 		}

@@ -22,6 +22,12 @@ export class ProductMongoDocument {
 
 	@Prop({ required: true, min: 0, default: 0 })
 	stock!: number;
+
+	@Prop({ required: true, trim: true, index: true })
+	profileId!: string;
+
+	@Prop({ required: true, default: true, index: true })
+	active!: boolean;
 }
 
 export const ProductMongoSchema =

@@ -1,15 +1,16 @@
 # User Service
 
-Servicio NestJS de autenticación con arquitectura hexagonal. El rol se obtiene exclusivamente del correo autorizado; nunca se acepta desde el formulario. Los roles admitidos son `ESTUDIANTE`, `DOCENTE`, `ADMINISTRATIVO` y `ADMINISTRADOR`.
+Servicio NestJS de autenticación, perfiles de tienda y direcciones de entrega. El rol se obtiene exclusivamente del correo autorizado; nunca se acepta desde el formulario. Los roles admitidos son `ESTUDIANTE`, `DOCENTE` y `ADMINISTRATIVO`. El rol administrativo también permite moderar tiendas y productos; no existe un rol `ADMINISTRADOR`.
 
-Para asignar administración, un operador debe cambiar el rol del correo en la colección `correos_institucionales` antes de que active su cuenta. Para un usuario existente, actualiza también `usuarios.rol`; debe iniciar sesión nuevamente para recibir el rol actualizado en el JWT. No se habilita el rol administrador desde la interfaz pública.
+El perfil de tienda se crea al activar la cuenta. Las personas de cualquier rol pueden configurar su tienda; los administrativos además pueden desactivar o habilitar tiendas y productos.
 
 ## Colecciones MongoDB
 
 La conexión usa `MONGODB_URI`, con base predeterminada `univalle_users`.
 
 - `correos_institucionales`: `email`, `nombre`, `apellido`, `rol` y `authorized`.
-- `usuarios`: `email`, `passwordHash`, `rol`, `estado` y `emailVerified`.
+- `usuarios`: `email`, `passwordHash`, `rol`, `estado`, `emailVerified`, `addresses` y `selectedAddressId`.
+- `perfiles`: `userId`, `nickname`, dirección de la tienda, costo de envío y estado activo.
 
 ## Flujo y API
 
@@ -17,6 +18,11 @@ El gateway expone:
 
 - `POST /api/users/activate` con `{ "email": "estudiante.demo@correounivalle.edu.co", "password": "una-clave-de-8-caracteres" }`.
 - `POST /api/users/login` con `{ "email": "estudiante.demo@correounivalle.edu.co", "password": "una-clave-de-8-caracteres" }`.
+- `GET/PATCH /api/users/profiles/me` – consultar o editar apodo, dirección y costo de envío de la tienda.
+- `GET /api/users/profiles` – listar tiendas activas.
+- `GET/POST /api/users/me/addresses` – listar y agregar direcciones de entrega.
+- `PATCH /api/users/me/addresses/:id/select` y `DELETE /api/users/me/addresses/:id` – elegir o eliminar una dirección propia.
+- `GET /api/users/profiles/manage` y `PATCH /api/users/profiles/:id/status` – moderación reservada a `ADMINISTRATIVO`.
 
 La activación exige un correo `@correounivalle.edu.co` presente y autorizado en `correos_institucionales`. Nombre y rol provienen de ese registro. La contraseña requiere al menos 8 caracteres y se almacena con bcrypt. El login responde con un JWT de una hora y el perfil público.
 
@@ -40,7 +46,7 @@ Correos de demostración: `estudiante.demo@correounivalle.edu.co` contraseña: `
 
 otros ejemplos: `docente.demo@correounivalle.edu.co` y `administrativo.demo@correounivalle.edu.co`. Define una contraseña al activar cada cuenta.
 
-> **Usuario demo administrador:** `administrador.demo@correounivalle.edu.co` sirve para probar la administración del catálogo: al iniciar sesión puede crear, editar, desactivar y reactivar categorías, y publicar productos que aparecerán para los usuarios de la tienda. Está marcado `authorized: false` en el seed para que nadie pueda activar esta cuenta privilegiada automáticamente. Para una prueba local controlada, un operador debe autorizar el correo en `correos_institucionales`; después se activa la cuenta definiendo una contraseña. No reutilices esta cuenta ni la habilites en un entorno público.
+La cuenta demo `administrativo.demo@correounivalle.edu.co` puede probar la gestión de su propia tienda y las herramientas administrativas. Actívala con una contraseña como cualquier otro correo autorizado.
 
 ## Configuración y desarrollo
 

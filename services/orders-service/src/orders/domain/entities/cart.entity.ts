@@ -32,13 +32,22 @@ export class CartEntity {
     public readonly items: CartItemEntity[],
     public readonly promoCode: string | null = null,
     public readonly discountRate: number = 0,
+    public readonly storeProfileId: string = 'default-store',
+    public readonly shippingCost: number = 8000,
   ) {}
 
-  static createEmpty(userId: string): CartEntity {
+  static createEmpty(
+    userId: string,
+    storeProfileId = 'default-store',
+    shippingCost = 8000,
+  ): CartEntity {
     if (typeof userId !== 'string' || !userId.trim()) {
       throw new InvalidCartError('UserId is required');
     }
-    return new CartEntity(null, userId.trim(), [], null, 0);
+    if (!storeProfileId.trim() || !Number.isSafeInteger(shippingCost) || shippingCost < 0) {
+      throw new InvalidCartError('Store and shipping cost are required');
+    }
+    return new CartEntity(null, userId.trim(), [], null, 0, storeProfileId, shippingCost);
   }
 
   addItem(data: CartItemData): CartEntity {
@@ -54,6 +63,8 @@ export class CartEntity {
         [...this.items, incoming],
         this.promoCode,
         this.discountRate,
+        this.storeProfileId,
+        this.shippingCost,
       );
     }
 
@@ -72,6 +83,8 @@ export class CartEntity {
       updatedItems,
       this.promoCode,
       this.discountRate,
+      this.storeProfileId,
+      this.shippingCost,
     );
   }
 
@@ -94,6 +107,8 @@ export class CartEntity {
       updatedItems,
       this.promoCode,
       this.discountRate,
+      this.storeProfileId,
+      this.shippingCost,
     );
   }
 
@@ -105,17 +120,50 @@ export class CartEntity {
       filtered,
       filtered.length > 0 ? this.promoCode : null,
       filtered.length > 0 ? this.discountRate : 0,
+      this.storeProfileId,
+      this.shippingCost,
     );
   }
 
   clear(): CartEntity {
-    return new CartEntity(this.id, this.userId, [], null, 0);
+    return new CartEntity(
+      this.id,
+      this.userId,
+      [],
+      null,
+      0,
+      this.storeProfileId,
+      this.shippingCost,
+    );
+  }
+
+  withShippingCost(shippingCost: number): CartEntity {
+    if (!Number.isSafeInteger(shippingCost) || shippingCost < 0) {
+      throw new InvalidCartError('Shipping cost must be a non-negative integer');
+    }
+    return new CartEntity(
+      this.id,
+      this.userId,
+      this.items,
+      this.promoCode,
+      this.discountRate,
+      this.storeProfileId,
+      shippingCost,
+    );
   }
 
   applyPromoCode(rawCode: string): CartEntity {
     const normalized = rawCode.trim().toUpperCase();
     if (!normalized) {
-      return new CartEntity(this.id, this.userId, this.items, null, 0);
+      return new CartEntity(
+        this.id,
+        this.userId,
+        this.items,
+        null,
+        0,
+        this.storeProfileId,
+        this.shippingCost,
+      );
     }
 
     const rate = VALID_PROMO_CODES[normalized];
@@ -131,6 +179,8 @@ export class CartEntity {
       this.items,
       normalized,
       rate,
+      this.storeProfileId,
+      this.shippingCost,
     );
   }
 
@@ -147,7 +197,7 @@ export class CartEntity {
     const discountAmount = Math.round(subtotal * this.discountRate);
     const netSubtotal = Math.max(0, subtotal - discountAmount);
     const estimatedShipping =
-      totalItems > 0 ? CartEntity.DEFAULT_SHIPPING_COST : 0;
+      totalItems > 0 ? this.shippingCost : 0;
     const taxes = Math.round(netSubtotal * CartEntity.TAX_RATE);
     const totalFinal = netSubtotal + estimatedShipping + taxes;
 
@@ -169,6 +219,7 @@ export class CartEntity {
     return {
       id: this.id,
       userId: this.userId,
+      storeProfileId: this.storeProfileId,
       items: this.items.map((item) => ({
         productId: item.productId,
         name: item.name,
@@ -185,4 +236,3 @@ export class CartEntity {
     };
   }
 }
-

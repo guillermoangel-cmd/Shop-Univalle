@@ -12,23 +12,30 @@ export class CategoryMongoRepositoryAdapter implements CategoryRepository {
 		private readonly categoryModel: Model<CategoryMongoDocument>,
 	) {}
 
-	async findAll(includeInactive = false): Promise<CategoryEntity[]> {
-		const filter = includeInactive ? {} : { active: true };
+	async findAll(includeInactive = false, profileId?: string): Promise<CategoryEntity[]> {
+		const filter = {
+			...(includeInactive ? {} : { active: true }),
+			...(profileId ? { profileId } : {}),
+		};
 		const records = await this.categoryModel.find(filter).sort({ name: 1 }).exec();
 		return records.map((record) => this.toEntity(record));
 	}
 
-	async findById(id: string): Promise<CategoryEntity | null> {
+	async findById(id: string, profileId?: string): Promise<CategoryEntity | null> {
 		if (!Types.ObjectId.isValid(id)) {
 			return null;
 		}
-		const record = await this.categoryModel.findById(id).exec();
+		const record = await this.categoryModel.findOne({
+			_id: id,
+			...(profileId ? { profileId } : {}),
+		}).exec();
 		return record ? this.toEntity(record) : null;
 	}
 
-	async findByName(name: string): Promise<CategoryEntity | null> {
+	async findByName(name: string, profileId?: string): Promise<CategoryEntity | null> {
 		const record = await this.categoryModel.findOne({
 			nameKey: name.trim().toLocaleLowerCase('es'),
+			...(profileId ? { profileId } : {}),
 		}).exec();
 		return record ? this.toEntity(record) : null;
 	}
@@ -39,6 +46,7 @@ export class CategoryMongoRepositoryAdapter implements CategoryRepository {
 			nameKey: category.name.toLocaleLowerCase('es'),
 			description: category.description,
 			active: category.active,
+			profileId: category.profileId ?? '',
 		});
 		return this.toEntity(record);
 	}
@@ -54,6 +62,7 @@ export class CategoryMongoRepositoryAdapter implements CategoryRepository {
 				nameKey: category.name.toLocaleLowerCase('es'),
 				description: category.description,
 				active: category.active,
+				profileId: category.profileId,
 			},
 			{ new: true, runValidators: true },
 		).exec();
@@ -69,6 +78,7 @@ export class CategoryMongoRepositoryAdapter implements CategoryRepository {
 			record.name,
 			record.description,
 			record.active,
+			record.profileId ?? null,
 		);
 	}
 }

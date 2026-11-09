@@ -27,6 +27,7 @@ import {
   OrderMongoDocument,
   OrderMongoSchema,
 } from './infrastructure/persistence/order-mongo.schema.js';
+import { OrdersAuthGuard } from './infrastructure/http/orders-auth.guard.js';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import {
   ],
   controllers: [OrdersController],
   providers: [
+    OrdersAuthGuard,
     CartMongoRepositoryAdapter,
     OrderMongoRepositoryAdapter,
     { provide: CART_REPOSITORY, useExisting: CartMongoRepositoryAdapter },
@@ -94,4 +96,3 @@ import {
   ],
 })
 export class OrdersModule {}
-

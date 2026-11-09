@@ -6,6 +6,7 @@ export interface ProductData {
 	categoryId?: string;
 	price: number;
 	stock: number;
+	profileId?: string;
 }
 
 export class InvalidProductError extends Error {}
@@ -20,6 +21,8 @@ export class ProductEntity {
 		public readonly price: number,
 		public readonly stock: number,
 		public readonly categoryId: string | null = null,
+		public readonly profileId: string | null = null,
+		public readonly active: boolean = true,
 	) {}
 
 	static create(data: ProductData): ProductEntity {
@@ -51,6 +54,7 @@ export class ProductEntity {
 			data.price,
 			data.stock,
 			typeof data.categoryId === 'string' ? data.categoryId.trim() || null : null,
+			typeof data.profileId === 'string' ? data.profileId.trim() || null : null,
 		);
 	}
 }

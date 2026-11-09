@@ -3,7 +3,7 @@ import type { CategoryRepository } from '../../domain/ports/category.repository.
 export class ListCategoriesUseCase {
 	constructor(private readonly categoryRepository: CategoryRepository) {}
 
-	execute(includeInactive = false) {
-		return this.categoryRepository.findAll(includeInactive);
+	execute(includeInactive = false, profileId?: string) {
+		return this.categoryRepository.findAll(includeInactive, profileId);
 	}
 }

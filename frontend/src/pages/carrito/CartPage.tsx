@@ -1,5 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { CartState, OrderReceipt } from '../../types/cart'
+import {
+  getCurrentUser,
+  selectCustomerAddress,
+  type CustomerAddress,
+} from '../../services/usersApi'
 import './CartPage.css'
 
 const copFormatter = new Intl.NumberFormat('es-CO', {
@@ -18,8 +23,11 @@ function padTwoDigits(num: number): string {
 
 interface CartPageProps {
   cart: CartState
+  cartError: string
   isAuthenticated: boolean
+  accessToken: string
   onBackToCatalog: () => void
+  onOpenProfile: () => void
   onGoToLogin: () => void
   onLogout: () => void
   onUpdateQuantity: (productId: string, quantity: number) => void
@@ -28,14 +36,16 @@ interface CartPageProps {
   onRemoveItem: (productId: string) => void
   onClearAll: () => void
   onApplyPromo: (code: string) => Promise<void>
-  onCheckout: (mode: 'AUTHENTICATED' | 'GUEST') => Promise<OrderReceipt | null>
-  onLoadReferenceItems: () => Promise<void>
+  onCheckout: (mode: 'AUTHENTICATED' | 'GUEST', deliveryAddress: string) => Promise<OrderReceipt | null>
 }
 
 function CartPage({
   cart,
+  cartError,
   isAuthenticated,
+  accessToken,
   onBackToCatalog,
+  onOpenProfile,
   onGoToLogin,
   onLogout,
   onUpdateQuantity,
@@ -45,7 +55,6 @@ function CartPage({
   onClearAll,
   onApplyPromo,
   onCheckout,
-  onLoadReferenceItems,
 }: CartPageProps) {
   const [promoInput, setPromoInput] = useState(cart.summary.promoCode ?? '')
   const [promoMessage, setPromoMessage] = useState<{
@@ -54,6 +63,31 @@ function CartPage({
   } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [lastOrder, setLastOrder] = useState<OrderReceipt | null>(null)
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState('')
+  const [addressLoadError, setAddressLoadError] = useState('')
+
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) return
+    let active = true
+    void getCurrentUser(accessToken)
+      .then((user) => {
+        if (!active) return
+        setCustomerAddresses(user.addresses)
+        setSelectedAddressId(user.selectedAddressId ?? '')
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setCustomerAddresses([])
+          setAddressLoadError(
+            cause instanceof Error ? cause.message : 'No se pudieron cargar las direcciones.',
+          )
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [accessToken, isAuthenticated])
 
   const handlePromoSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -80,10 +114,21 @@ function CartPage({
   }
 
   const handleProcessCheckout = async (mode: 'AUTHENTICATED' | 'GUEST') => {
+    const address = customerAddresses.find((item) => item.id === selectedAddressId)
+    if (!address) {
+      setPromoMessage({
+        type: 'error',
+        text: 'Agrega y selecciona una dirección de entrega en tu perfil antes de pagar.',
+      })
+      return
+    }
     setSubmitting(true)
     setPromoMessage(null)
     try {
-      const createdOrder = await onCheckout(mode)
+      const deliveryAddress = [address.label, address.address, address.details]
+        .filter(Boolean)
+        .join(' · ')
+      const createdOrder = await onCheckout(mode, deliveryAddress)
       if (createdOrder) {
         setLastOrder(createdOrder)
       }
@@ -97,6 +142,22 @@ function CartPage({
       })
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleAddressSelection = async (addressId: string) => {
+    setSelectedAddressId(addressId)
+    if (!addressId || !accessToken) return
+    try {
+      const result = await selectCustomerAddress(accessToken, addressId)
+      setCustomerAddresses(result.addresses)
+      setSelectedAddressId(result.selectedAddressId ?? '')
+      setPromoMessage(null)
+    } catch (error) {
+      setPromoMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'No se pudo seleccionar la dirección.',
+      })
     }
   }
 
@@ -128,9 +189,14 @@ function CartPage({
 
         <div className="uv-nav-right">
           {isAuthenticated ? (
-            <button type="button" className="uv-nav-link" onClick={onLogout}>
-              CERRAR SESIÓN
-            </button>
+            <>
+              <button type="button" className="uv-nav-link" onClick={onOpenProfile}>
+                MI PERFIL
+              </button>
+              <button type="button" className="uv-nav-link" onClick={onLogout}>
+                CERRAR SESIÓN
+              </button>
+            </>
           ) : (
             <>
               <button
@@ -175,6 +241,7 @@ function CartPage({
       </header>
 
       <main className="uv-cart-container">
+        {cartError && <p className="profile-feedback error" role="alert">{cartError}</p>}
         {/* Breadcrumb */}
         <nav className="uv-breadcrumb" aria-label="Ruta de navegación">
           <button
@@ -240,8 +307,7 @@ function CartPage({
               <div className="uv-empty-cart">
                 <h3>Tu carrito está vacío</h3>
                 <p>
-                  Agrega productos desde el catálogo o carga la selección oficial
-                  Univalle para probar el flujo de pedido.
+                  Entra a una tienda y agrega sus productos para crear un carrito independiente.
                 </p>
                 <div className="uv-empty-actions">
                   <button
@@ -251,13 +317,6 @@ function CartPage({
                     onClick={onBackToCatalog}
                   >
                     EXPLORAR CATÁLOGO
-                  </button>
-                  <button
-                    type="button"
-                    className="uv-btn-outline"
-                    onClick={() => void onLoadReferenceItems()}
-                  >
-                    CARGAR PACK DEMO UNIVALLE (04 PRODUCTOS)
                   </button>
                 </div>
               </div>
@@ -394,6 +453,28 @@ function CartPage({
             <h2 className="uv-summary-title">RESUMEN</h2>
 
             <div className="uv-summary-rows">
+              <div className="uv-delivery-address">
+                <strong>Dirección de entrega</strong>
+                {addressLoadError && <p role="alert">{addressLoadError}</p>}
+                {customerAddresses.length > 0 ? (
+                  <select
+                    value={selectedAddressId}
+                    onChange={(event) => void handleAddressSelection(event.target.value)}
+                    aria-label="Dirección donde recibir el pedido"
+                  >
+                    {customerAddresses.map((address) => (
+                      <option key={address.id} value={address.id}>
+                        {address.label} — {address.address}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p>No tienes direcciones guardadas.</p>
+                )}
+                <button type="button" className="uv-address-link" onClick={onOpenProfile}>
+                  Administrar mis direcciones
+                </button>
+              </div>
               <div className="uv-summary-row">
                 <span>Total Items</span>
                 <strong>{summary.totalItems} Items</strong>
@@ -470,4 +551,3 @@ function CartPage({
 }
 
 export default CartPage
-

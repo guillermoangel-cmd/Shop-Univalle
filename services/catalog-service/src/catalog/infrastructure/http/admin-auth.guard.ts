@@ -9,14 +9,18 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Request } from 'express';
 
 interface TokenClaims {
+	sub?: unknown;
+	email?: unknown;
 	role?: unknown;
 	exp?: unknown;
 }
 
 @Injectable()
-export class AdminAuthGuard implements CanActivate {
+export class CatalogAuthGuard implements CanActivate {
 	canActivate(context: ExecutionContext): boolean {
-		const request = context.switchToHttp().getRequest<Request>();
+		const request = context.switchToHttp().getRequest<Request & {
+			user?: { sub: string; email: string; role: string };
+		}>();
 		const authorization = request.headers.authorization;
 		if (!authorization?.startsWith('Bearer ')) {
 			throw new UnauthorizedException('Se requiere una sesión válida');
@@ -55,9 +59,18 @@ export class AdminAuthGuard implements CanActivate {
 			if (typeof claims.exp !== 'number' || claims.exp <= Date.now() / 1000) {
 				throw new UnauthorizedException('La sesión expiró');
 			}
-			if (claims.role !== 'ADMINISTRADOR') {
-				throw new ForbiddenException('Se requiere el rol de administrador');
+			if (
+				typeof claims.sub !== 'string' ||
+				typeof claims.email !== 'string' ||
+				typeof claims.role !== 'string'
+			) {
+				throw new UnauthorizedException('Token inválido');
 			}
+			request.user = {
+				sub: claims.sub,
+				email: claims.email,
+				role: claims.role,
+			};
 			return true;
 		} catch (error) {
 			if (
@@ -68,5 +81,19 @@ export class AdminAuthGuard implements CanActivate {
 			}
 			throw new UnauthorizedException('Token inválido');
 		}
+	}
+}
+
+@Injectable()
+export class AdminAuthGuard extends CatalogAuthGuard {
+	canActivate(context: ExecutionContext): boolean {
+		super.canActivate(context);
+		const request = context.switchToHttp().getRequest<Request & {
+			user: { sub: string; email: string; role: string };
+		}>();
+		if (request.user.role !== 'ADMINISTRATIVO') {
+			throw new ForbiddenException('Se requiere el rol administrativo');
+		}
+		return true;
 	}
 }

@@ -73,6 +73,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env}
       MONGODB_URI: ${ORDERS_MONGODB_URI:-mongodb://orders-mongo:27017/univalle_orders}
     depends_on:
       orders-mongo:

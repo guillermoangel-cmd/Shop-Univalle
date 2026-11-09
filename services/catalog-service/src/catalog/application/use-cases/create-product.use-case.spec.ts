@@ -7,7 +7,7 @@ import { ProductEntity } from '../../domain/entities/product.entity.js';
 import { CreateProductUseCase } from './create-product.use-case.js';
 
 describe('CreateProductUseCase', () => {
-	const category = new CategoryEntity('category-id', 'Bebidas', '', true);
+	const category = new CategoryEntity('category-id', 'Bebidas', '', true, 'seller-id');
 	const categories: CategoryRepository = {
 		findAll: jest.fn(),
 		findById: jest.fn(async () => category),
@@ -21,6 +21,7 @@ describe('CreateProductUseCase', () => {
 		findByCategoryId: jest.fn(),
 		updateCategoryName: jest.fn(),
 		save: jest.fn(async (product) => product),
+		setActive: jest.fn(),
 	};
 	const useCase = new CreateProductUseCase(products, categories);
 
@@ -31,10 +32,12 @@ describe('CreateProductUseCase', () => {
 			categoryId: 'category-id',
 			price: 8000,
 			stock: 4,
-		});
+		}, 'seller-id');
 
 		expect(created.category).toBe('Bebidas');
 		expect(created.categoryId).toBe('category-id');
+		expect(created.profileId).toBe('seller-id');
+		expect(categories.findById).toHaveBeenCalledWith('category-id', 'seller-id');
 		expect(products.save).toHaveBeenCalledWith(expect.any(ProductEntity));
 	});
 
@@ -47,7 +50,7 @@ describe('CreateProductUseCase', () => {
 		})).rejects.toThrow(CategoryNotFoundError);
 
 		jest.mocked(categories.findById).mockResolvedValueOnce(
-			new CategoryEntity('category-id', 'Bebidas', '', false),
+			new CategoryEntity('category-id', 'Bebidas', '', false, 'seller-id'),
 		);
 		await expect(useCase.execute({
 			name: 'Jugo natural',

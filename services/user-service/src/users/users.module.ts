@@ -14,10 +14,18 @@ import { UserRepositoryAdapter } from './infraestructure/adapters/user-mongo-rep
 import {
 	AuthorizedEmailMongoDocument,
 	AuthorizedEmailMongoSchema,
+	ProfileMongoDocument,
+	ProfileMongoSchema,
 	UserMongoDocument,
 	UserMongoSchema,
 } from './infraestructure/persistence/user-mongo.schema.js';
 import { AuthController } from './infraestructure/http/auth.controller.js';
+import { CustomerAddressesController } from './infraestructure/http/customer-addresses.controller.js';
+import { ProfilesController } from './infraestructure/http/profiles.controller.js';
+import {
+	AdministrativeGuard,
+	UserAuthGuard,
+} from './infraestructure/http/user-auth.guard.js';
 
 @Module({
 	imports: [
@@ -36,11 +44,14 @@ import { AuthController } from './infraestructure/http/auth.controller.js';
 				name: AuthorizedEmailMongoDocument.name,
 				schema: AuthorizedEmailMongoSchema,
 			},
+			{ name: ProfileMongoDocument.name, schema: ProfileMongoSchema },
 		]),
 	],
-	controllers: [AuthController],
+	controllers: [AuthController, ProfilesController, CustomerAddressesController],
 	providers: [
 		UserRepositoryAdapter,
+		UserAuthGuard,
+		AdministrativeGuard,
 		BcryptPasswordAdapter,
 		JwtTokenSignerAdapter,
 		{

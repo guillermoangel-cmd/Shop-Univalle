@@ -5,6 +5,41 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+.uv-delivery-address {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+  font-size: 12px;
+}
+
+.uv-delivery-address select {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 1px solid #d8d8d8;
+  background: #fff;
+  color: #333;
+}
+
+.uv-delivery-address p {
+  margin: 0;
+  color: #757575;
+}
+
+.uv-address-link {
+  justify-self: start;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #2e624b;
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Top Navigation Bar matching screenshot */
 .uv-topbar {
   display: grid;
@@ -612,4 +647,3 @@
     gap: 36px;
   }
 }
-

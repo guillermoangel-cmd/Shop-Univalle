@@ -1,16 +1,7 @@
-import type { CartItem, CartState, CartSummary, OrderReceipt } from '../types/cart'
+import type { CartState, OrderReceipt } from '../types/cart'
 import type { Product } from '../types/product'
 
-const STORAGE_KEY = 'univalle_shop_cart_v1'
-const ORDERS_STORAGE_KEY = 'univalle_shop_orders_v1'
-const SHIPPING_COST = 8000
-const TAX_RATE = 0.19
-
-const PROMO_CODES: Record<string, number> = {
-  UNIVALLE10: 0.1,
-  UNIVALLE20: 0.2,
-  UV75: 0.15,
-}
+const DEFAULT_SHIPPING_COST = 8000
 
 export const DEFAULT_UNIVALLE_PRODUCTS: Product[] = [
   {
@@ -51,360 +42,173 @@ export const DEFAULT_UNIVALLE_PRODUCTS: Product[] = [
   },
 ]
 
-function computeSummary(
-  items: CartItem[],
-  promoCode: string | null = null,
-): CartSummary {
-  const selected = items.filter((item) => item.selected)
-  const totalItems = selected.reduce((acc, item) => acc + item.quantity, 0)
-  const subtotal = selected.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0,
-  )
-  const rate = promoCode ? (PROMO_CODES[promoCode] ?? 0) : 0
-  const discountAmount = Math.round(subtotal * rate)
-  const netSubtotal = Math.max(0, subtotal - discountAmount)
-  const estimatedShipping = totalItems > 0 ? SHIPPING_COST : 0
-  const taxes = Math.round(netSubtotal * TAX_RATE)
-  const totalFinal = netSubtotal + estimatedShipping + taxes
-
-  return {
-    distinctItemsCount: items.length,
-    totalItems,
-    subtotal,
-    discountAmount,
-    estimatedShipping,
-    taxRate: TAX_RATE,
-    taxes,
-    totalFinal,
-    promoCode,
-  }
-}
-
-function readLocalCart(userId: string): CartState {
-  try {
-    const raw = localStorage.getItem(`${STORAGE_KEY}_${userId}`)
-    if (raw) {
-      const parsed = JSON.parse(raw) as CartState
-      const items = (parsed.items ?? []).map((item) => ({
-        ...item,
-        lineTotal: item.price * item.quantity,
-      }))
-      return {
-        id: parsed.id ?? 'local-cart',
-        userId,
-        items,
-        summary: computeSummary(items, parsed.summary?.promoCode ?? null),
-      }
-    }
-  } catch {
-    // fallback to default
-  }
-
-  return {
-    id: 'local-cart',
-    userId,
-    items: [],
-    summary: computeSummary([], null),
-  }
-}
-
-function writeLocalCart(userId: string, cart: CartState): CartState {
-  const normalizedItems = cart.items.map((item) => ({
-    ...item,
-    lineTotal: item.price * item.quantity,
-  }))
-  const next: CartState = {
-    ...cart,
-    userId,
-    items: normalizedItems,
-    summary: computeSummary(normalizedItems, cart.summary?.promoCode ?? null),
-  }
-  try {
-    localStorage.setItem(`${STORAGE_KEY}_${userId}`, JSON.stringify(next))
-  } catch {
-    // ignore storage errors
-  }
-  return next
-}
-
-export async function fetchCart(userId = 'default-user'): Promise<CartState> {
-  try {
-    const response = await fetch(
-      `/api/cart?userId=${encodeURIComponent(userId)}`,
+async function requestJson<T>(
+  path: string,
+  accessToken: string,
+  fallbackMessage: string,
+  init?: RequestInit,
+): Promise<T> {
+  const headers = new Headers(init?.headers)
+  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
+  const response = await fetch(path, { ...init, headers })
+  const result = await response.json().catch(() => null) as
+    | { message?: string | string[] }
+    | T
+    | null
+  if (!response.ok) {
+    const message =
+      result && typeof result === 'object' && 'message' in result
+        ? result.message
+        : undefined
+    throw new Error(
+      Array.isArray(message)
+        ? message.join(' ')
+        : message || fallbackMessage,
     )
-    if (response.ok) {
-      const data = (await response.json()) as CartState
-      return writeLocalCart(userId, data)
-    }
-  } catch {
-    // Fallback local cuando orders-service no está levantado aún
   }
-  return readLocalCart(userId)
+  if (result === null) throw new Error('El servicio respondió sin datos.')
+  return result as T
 }
 
-export async function addProductToCart(
+function jsonBody(value: unknown): RequestInit {
+  return {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(value),
+  }
+}
+
+function cartQuery(userId: string, storeProfileId: string, shippingCost: number) {
+  const params = new URLSearchParams({
+    userId,
+    storeProfileId,
+    shippingCost: String(shippingCost),
+  })
+  return params.toString()
+}
+
+export function fetchCart(
+  userId: string,
+  storeProfileId: string,
+  shippingCost: number,
+  accessToken: string,
+): Promise<CartState> {
+  return requestJson(
+    `/api/cart?${cartQuery(userId, storeProfileId, shippingCost)}`,
+    accessToken,
+    'No se pudo cargar el carrito.',
+  )
+}
+
+export function addProductToCart(
   userId: string,
   product: Product,
-  quantity = 1,
+  quantity: number,
+  accessToken: string,
 ): Promise<CartState> {
-  const itemPayload = {
-    productId: product.id,
-    name: product.name,
-    category: product.category,
-    description: product.description || 'Colección 2026 · Talla: Única',
-    imageUrl: product.imageUrl || '',
-    price: product.price,
-    quantity,
-  }
-
-  try {
-    const response = await fetch('/api/cart/items', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, item: itemPayload }),
-    })
-    if (response.ok) {
-      const data = (await response.json()) as CartState
-      return writeLocalCart(userId, data)
-    }
-  } catch {
-    // Fallback local
-  }
-
-  const current = readLocalCart(userId)
-  const existingIndex = current.items.findIndex(
-    (item) => item.productId === product.id,
-  )
-  let nextItems: CartItem[]
-  if (existingIndex === -1) {
-    nextItems = [
-      ...current.items,
-      {
-        ...itemPayload,
-        lineTotal: product.price * quantity,
-        selected: true,
-        favorite: false,
+  const storeProfileId = product.profileId || ''
+  return requestJson(
+    '/api/cart/items',
+    accessToken,
+    'No se pudo agregar el producto.',
+    jsonBody({
+      userId,
+      storeProfileId,
+      shippingCost: product.shippingCost ?? DEFAULT_SHIPPING_COST,
+      item: {
+        productId: product.id,
+        name: product.name,
+        category: product.category,
+        description: product.description || '',
+        imageUrl: product.imageUrl || '',
+        price: product.price,
+        quantity,
       },
-    ]
-  } else {
-    nextItems = current.items.map((item, idx) =>
-      idx === existingIndex
-        ? {
-            ...item,
-            quantity: item.quantity + quantity,
-            lineTotal: item.price * (item.quantity + quantity),
-            selected: true,
-          }
-        : item,
-    )
-  }
-
-  return writeLocalCart(userId, { ...current, items: nextItems })
+    }),
+  )
 }
 
-export async function updateCartItemState(
+export function updateCartItemState(
   userId: string,
   productId: string,
   patch: { quantity?: number; selected?: boolean; favorite?: boolean },
+  storeProfileId: string,
+  shippingCost: number,
+  accessToken: string,
 ): Promise<CartState> {
-  try {
-    const response = await fetch(
-      `/api/cart/items/${encodeURIComponent(productId)}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, ...patch }),
-      },
-    )
-    if (response.ok) {
-      const data = (await response.json()) as CartState
-      return writeLocalCart(userId, data)
-    }
-  } catch {
-    // Fallback local
-  }
-
-  const current = readLocalCart(userId)
-  const nextItems = current.items.map((item) => {
-    if (item.productId !== productId) return item
-    const nextQty = patch.quantity ?? item.quantity
-    return {
-      ...item,
-      quantity: nextQty,
-      lineTotal: item.price * nextQty,
-      selected: patch.selected ?? item.selected,
-      favorite: patch.favorite ?? item.favorite,
-    }
-  })
-
-  return writeLocalCart(userId, { ...current, items: nextItems })
+  return requestJson(
+    `/api/cart/items/${encodeURIComponent(productId)}`,
+    accessToken,
+    'No se pudo actualizar el carrito.',
+    {
+      ...jsonBody({ userId, storeProfileId, shippingCost, ...patch }),
+      method: 'PATCH',
+    },
+  )
 }
 
-export async function removeCartItem(
+export function removeCartItem(
   userId: string,
   productId: string,
+  storeProfileId: string,
+  shippingCost: number,
+  accessToken: string,
 ): Promise<CartState> {
-  try {
-    const response = await fetch(
-      `/api/cart/items/${encodeURIComponent(productId)}?userId=${encodeURIComponent(userId)}`,
-      { method: 'DELETE' },
-    )
-    if (response.ok) {
-      const data = (await response.json()) as CartState
-      return writeLocalCart(userId, data)
-    }
-  } catch {
-    // Fallback local
-  }
-
-  const current = readLocalCart(userId)
-  const nextItems = current.items.filter((item) => item.productId !== productId)
-  return writeLocalCart(userId, { ...current, items: nextItems })
+  return requestJson(
+    `/api/cart/items/${encodeURIComponent(productId)}?${cartQuery(userId, storeProfileId, shippingCost)}`,
+    accessToken,
+    'No se pudo eliminar el producto.',
+    { method: 'DELETE' },
+  )
 }
 
-export async function clearAllCart(userId: string): Promise<CartState> {
-  try {
-    const response = await fetch(
-      `/api/cart?userId=${encodeURIComponent(userId)}`,
-      { method: 'DELETE' },
-    )
-    if (response.ok) {
-      const data = (await response.json()) as CartState
-      return writeLocalCart(userId, data)
-    }
-  } catch {
-    // Fallback local
-  }
-
-  return writeLocalCart(userId, {
-    id: 'local-cart',
-    userId,
-    items: [],
-    summary: computeSummary([], null),
-  })
+export function clearAllCart(
+  userId: string,
+  storeProfileId: string,
+  shippingCost: number,
+  accessToken: string,
+): Promise<CartState> {
+  return requestJson(
+    `/api/cart?${cartQuery(userId, storeProfileId, shippingCost)}`,
+    accessToken,
+    'No se pudo vaciar el carrito.',
+    { method: 'DELETE' },
+  )
 }
 
-export async function applyCartPromoCode(
+export function applyCartPromoCode(
   userId: string,
   promoCode: string,
+  storeProfileId: string,
+  shippingCost: number,
+  accessToken: string,
 ): Promise<CartState> {
-  const normalized = promoCode.trim().toUpperCase()
-  try {
-    const response = await fetch('/api/cart/promo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, promoCode: normalized }),
-    })
-    if (response.ok) {
-      const data = (await response.json()) as CartState
-      return writeLocalCart(userId, data)
-    }
-    if (response.status === 400) {
-      const errBody = (await response.json().catch(() => null)) as {
-        message?: string
-      } | null
-      throw new Error(
-        errBody?.message ||
-          'Código promocional no válido. Prueba con UNIVALLE10 o UV75.',
-      )
-    }
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('Código promocional')) {
-      throw error
-    }
-  }
-
-  if (normalized && !(normalized in PROMO_CODES)) {
-    throw new Error(
-      'Código promocional no válido. Prueba con UNIVALLE10 o UV75.',
-    )
-  }
-
-  const current = readLocalCart(userId)
-  return writeLocalCart(userId, {
-    ...current,
-    summary: computeSummary(current.items, normalized || null),
-  })
+  return requestJson(
+    '/api/cart/promo',
+    accessToken,
+    'No se pudo aplicar el código promocional.',
+    jsonBody({ userId, promoCode, storeProfileId, shippingCost }),
+  )
 }
 
 export async function checkoutCartOrder(
   userId: string,
   checkoutMode: 'AUTHENTICATED' | 'GUEST',
+  storeProfileId: string,
+  shippingCost: number,
+  deliveryAddress: string,
+  accessToken: string,
 ): Promise<{ order: OrderReceipt; cart: CartState }> {
-  try {
-    const response = await fetch('/api/orders/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, checkoutMode }),
-    })
-    if (response.ok) {
-      const data = (await response.json()) as {
-        order: OrderReceipt
-        cart: CartState
-      }
-      writeLocalCart(userId, data.cart)
-      return data
-    }
-    if (response.status === 400) {
-      const errBody = (await response.json().catch(() => null)) as {
-        message?: string
-      } | null
-      throw new Error(
-        errBody?.message || 'Selecciona al menos un producto para continuar.',
-      )
-    }
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('Selecciona')) {
-      throw error
-    }
-  }
-
-  const current = readLocalCart(userId)
-  const selectedItems = current.items.filter((item) => item.selected)
-  if (selectedItems.length === 0) {
-    throw new Error(
-      'Debes seleccionar al menos un producto para procesar el pedido.',
-    )
-  }
-
-  const order: OrderReceipt = {
-    id: `ord-${Date.now()}`,
-    orderNumber: `UV-${Date.now().toString(36).toUpperCase()}`,
-    userId,
-    checkoutMode,
-    items: selectedItems,
-    totalItems: current.summary.totalItems,
-    subtotal: current.summary.subtotal,
-    discountAmount: current.summary.discountAmount,
-    estimatedShipping: current.summary.estimatedShipping,
-    taxes: current.summary.taxes,
-    totalFinal: current.summary.totalFinal,
-    promoCode: current.summary.promoCode,
-    status: 'PENDING_PAYMENT',
-    createdAt: new Date().toISOString(),
-  }
-
-  try {
-    const existingRaw = localStorage.getItem(`${ORDERS_STORAGE_KEY}_${userId}`)
-    const existingOrders = existingRaw
-      ? (JSON.parse(existingRaw) as OrderReceipt[])
-      : []
-    localStorage.setItem(
-      `${ORDERS_STORAGE_KEY}_${userId}`,
-      JSON.stringify([order, ...existingOrders]),
-    )
-  } catch {
-    // ignore
-  }
-
-  const remaining = current.items.filter((item) => !item.selected)
-  const nextCart = writeLocalCart(userId, {
-    ...current,
-    items: remaining,
-    summary: computeSummary(remaining, null),
-  })
-
-  return { order, cart: nextCart }
+  return requestJson(
+    '/api/orders/checkout',
+    accessToken,
+    'No se pudo procesar el pedido.',
+    jsonBody({
+      userId,
+      checkoutMode,
+      storeProfileId,
+      shippingCost,
+      deliveryAddress,
+    }),
+  )
 }
-

@@ -15,12 +15,20 @@ export class CheckoutOrderUseCase {
   async execute(
     userId: string,
     checkoutMode: CheckoutMode = 'AUTHENTICATED',
+    storeProfileId = 'default-store',
+    deliveryAddress = '',
+    shippingCost = 8000,
   ): Promise<{ order: OrderEntity; cart: CartEntity }> {
-    const currentCart =
-      (await this.cartRepository.findByUserId(userId)) ??
-      CartEntity.createEmpty(userId);
+    const storedCart =
+      (await this.cartRepository.findByUserId(userId, storeProfileId)) ??
+      CartEntity.createEmpty(userId, storeProfileId, shippingCost);
+    const currentCart = storedCart.withShippingCost(shippingCost);
 
-    const newOrder = OrderEntity.createFromCart(currentCart, checkoutMode);
+    const newOrder = OrderEntity.createFromCart(
+      currentCart,
+      checkoutMode,
+      deliveryAddress,
+    );
     const savedOrder = await this.orderRepository.save(newOrder);
 
     // Mantener en el carrito únicamente los ítems que no estaban seleccionados
@@ -31,10 +39,11 @@ export class CheckoutOrderUseCase {
       remainingItems,
       null,
       0,
+      currentCart.storeProfileId,
+      currentCart.shippingCost,
     );
     const savedCart = await this.cartRepository.save(nextCart);
 
     return { order: savedOrder, cart: savedCart };
   }
 }
-

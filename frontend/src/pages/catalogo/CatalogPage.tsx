@@ -1,6 +1,6 @@
 import { startTransition, useDeferredValue, useEffect, useState } from 'react'
-import { DEFAULT_UNIVALLE_PRODUCTS } from '../../services/ordersApi'
 import type { Product } from '../../types/product'
+import { listStoreProfiles, type StoreProfile } from '../../services/usersApi'
 import AdminCatalogPanel, { type CatalogCategory } from './AdminCatalogPanel'
 import '../../App.css'
 
@@ -16,6 +16,12 @@ interface CatalogPageProps {
   onAddProduct: (product: Product) => Promise<void>
   accessToken?: string
   role?: string
+  userId: string
+  userName: string
+  selectedStoreId: string | null
+  onOpenProfile: () => void
+  onOpenStore: (profileId: string) => void
+  onOpenModeration: () => void
   onLogout: () => void
 }
 
@@ -25,12 +31,19 @@ function CatalogPage({
   onAddProduct,
   accessToken = '',
   role = 'ESTUDIANTE',
+  userId,
+  userName,
+  selectedStoreId,
+  onOpenProfile,
+  onOpenStore,
+  onOpenModeration,
   onLogout,
 }: CatalogPageProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<CatalogCategory[]>([])
+  const [profiles, setProfiles] = useState<StoreProfile[]>([])
   const [loading, setLoading] = useState(true)
-  const [, setError] = useState('')
+  const [error, setError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todas')
@@ -42,25 +55,26 @@ function CatalogPage({
 
     async function loadCatalog() {
       try {
-        const [productResponse, categoryResponse] = await Promise.all([
-          fetch('/api/products', { signal: controller.signal }),
-          fetch('/api/categories', { signal: controller.signal }).catch(() => null),
+        const query = selectedStoreId
+          ? `?profileId=${encodeURIComponent(selectedStoreId)}`
+          : ''
+        const [productResponse, categoryResponse, profileData] = await Promise.all([
+          fetch(`/api/products${query}`, { signal: controller.signal }),
+          fetch(`/api/categories${query}`, { signal: controller.signal }),
+          listStoreProfiles(),
         ])
 
-        let productData: unknown = null
-        if (productResponse && productResponse.ok) {
-          productData = await productResponse.json()
-        }
+        if (!productResponse.ok) throw new Error('No se pudieron cargar los productos.')
+        if (!categoryResponse.ok) throw new Error('No se pudieron cargar las categorías.')
+        const productData: unknown = await productResponse.json()
+        const categoryData: unknown = await categoryResponse.json()
 
-        let categoryData: unknown = []
-        if (categoryResponse && categoryResponse.ok) {
-          categoryData = await categoryResponse.json()
-        }
-
-        const validProducts =
-          Array.isArray(productData) && productData.length > 0
-            ? (productData as Product[])
-            : DEFAULT_UNIVALLE_PRODUCTS
+        const activeProfileIds = new Set(profileData.map((profile) => profile.id))
+        const validProducts = Array.isArray(productData)
+          ? (productData as Product[]).filter(
+              (product) => product.profileId && activeProfileIds.has(product.profileId),
+            )
+          : []
 
         const validCategories = Array.isArray(categoryData)
           ? (categoryData as CatalogCategory[])
@@ -69,12 +83,13 @@ function CatalogPage({
         startTransition(() => {
           setProducts(validProducts)
           setCategories(validCategories)
+          setProfiles(profileData)
         })
         setError('')
       } catch (cause: unknown) {
         if (!controller.signal.aborted) {
           startTransition(() => {
-            setProducts(DEFAULT_UNIVALLE_PRODUCTS)
+            setProducts([])
             setCategories([])
           })
           const message =
@@ -89,7 +104,13 @@ function CatalogPage({
     void loadCatalog()
 
     return () => controller.abort()
-  }, [refreshKey])
+  }, [refreshKey, selectedStoreId])
+
+  const selectedStore = profiles.find((profile) => profile.id === selectedStoreId)
+  const storesWithCounts = profiles.map((profile) => ({
+    ...profile,
+    productCount: products.filter((product) => product.profileId === profile.id).length,
+  }))
 
   const categoryNames = [
     ...new Set([
@@ -108,9 +129,20 @@ function CatalogPage({
   })
 
   const handleAddClick = async (product: Product) => {
+    if (!selectedStoreId && product.profileId) {
+      onOpenStore(product.profileId)
+      return
+    }
     setAddingId(product.id)
     try {
-      await onAddProduct(product)
+      const store = profiles.find((profile) => profile.id === product.profileId)
+      await onAddProduct({
+        ...product,
+        shopName: store?.nickname,
+        shippingCost: store?.shippingCost ?? 8000,
+      })
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo agregar el producto.')
     } finally {
       setAddingId(null)
     }
@@ -151,6 +183,32 @@ function CatalogPage({
         </label>
 
         <div className="header-actions">
+          <span className="welcome-message">
+            ¡Te damos la bienvenida! <strong>{userName}</strong>
+          </span>
+          <button
+            className="profile-button"
+            type="button"
+            onClick={onOpenProfile}
+            aria-label="Abrir mi perfil y direcciones"
+            title="Mi perfil"
+          >
+            <svg
+              aria-hidden="true"
+              width="17"
+              height="17"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+            </svg>
+            Perfil
+          </button>
           <button
             className="bag-button"
             type="button"
@@ -159,8 +217,10 @@ function CatalogPage({
           >
             Mi bolsa <span aria-label={`${bagCount} productos`}>{bagCount}</span>
           </button>
-          {role === 'ADMINISTRADOR' && (
-            <span className="role-badge">Administrador</span>
+          {role === 'ADMINISTRATIVO' && (
+            <button className="role-badge role-badge-button" type="button" onClick={onOpenModeration}>
+              Administrar
+            </button>
           )}
           <button className="logout-button" type="button" onClick={onLogout}>
             Cerrar sesión
@@ -169,17 +229,21 @@ function CatalogPage({
       </header>
 
       <main>
+        {error && <p className="catalog-message error" role="alert">{error}</p>}
+
         <section className="catalog-intro">
           <div>
             <p className="eyebrow">Hecho en comunidad</p>
-            <h1>El catálogo Univalle</h1>
+            <h1>{selectedStore ? selectedStore.nickname : 'El catálogo Univalle'}</h1>
           </div>
           <p className="intro-note">
-            Productos, proyectos y creaciones de estudiantes, docentes y equipos de la Universidad.
+            {selectedStore
+              ? `Tienda de la comunidad universitaria · Envío ${currency.format(selectedStore.shippingCost)}`
+              : 'Productos, proyectos y creaciones de estudiantes, docentes y equipos de la Universidad.'}
           </p>
         </section>
 
-        {role === 'ADMINISTRADOR' && (
+        {selectedStoreId === userId && (
           <AdminCatalogPanel
             accessToken={accessToken}
             categories={categories}
@@ -189,8 +253,20 @@ function CatalogPage({
 
         <section className="catalog-toolbar" aria-label="Filtros del catálogo">
           <span className="results-count">
-            {loading ? 'Cargando catálogo…' : `${visibleProducts.length} productos`}
+            {loading
+              ? 'Cargando catálogo…'
+              : `${visibleProducts.length} productos — ${selectedStore?.nickname ?? userName}`}
           </span>
+          {!selectedStoreId && (
+            <button className="store-link-button" type="button" onClick={() => onOpenStore(userId)}>
+              Ir a mi tienda
+            </button>
+          )}
+          {selectedStoreId && (
+            <button className="store-link-button" type="button" onClick={() => onOpenStore('')}>
+              Ver todas las tiendas
+            </button>
+          )}
           <label className="category-filter">
             <span>Categoría</span>
             <select
@@ -204,6 +280,24 @@ function CatalogPage({
             </select>
           </label>
         </section>
+
+        {!selectedStoreId && (
+          <section className="shop-grid" aria-label="Tiendas de la comunidad">
+            {storesWithCounts.map((profile) => (
+              <article className="shop-card" key={profile.id}>
+                <span className="eyebrow">Tienda Univalle</span>
+                <h2>{profile.nickname}</h2>
+                <p>{profile.productCount} productos</p>
+                <button className="admin-secondary-button" type="button" onClick={() => onOpenStore(profile.id)}>
+                  Ir a tienda
+                </button>
+              </article>
+            ))}
+            {storesWithCounts.length === 0 && !loading && (
+              <p className="catalog-message">Todavía no hay tiendas activas.</p>
+            )}
+          </section>
+        )}
 
         <section
           className="product-grid"
@@ -253,10 +347,12 @@ function CatalogPage({
                   <button
                     className="add-button"
                     type="button"
-                    disabled={product.stock < 1 || addingId === product.id}
+                    disabled={Boolean(selectedStoreId && product.stock < 1) || addingId === product.id}
                     onClick={() => void handleAddClick(product)}
                   >
-                    {addingId === product.id
+                    {!selectedStoreId
+                      ? 'Ir a tienda'
+                      : addingId === product.id
                       ? 'Añadiendo…'
                       : product.stock > 0
                         ? 'Añadir'

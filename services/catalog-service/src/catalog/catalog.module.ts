@@ -8,6 +8,7 @@ import { DeactivateCategoryUseCase } from './application/use-cases/deactivate-ca
 import { ActivateCategoryUseCase } from './application/use-cases/activate-category.use-case.js';
 import { GetProductUseCase } from './application/use-cases/get-product.use-case.js';
 import { ListProductsUseCase } from './application/use-cases/list-products.use-case.js';
+import { SetProductActiveUseCase } from './application/use-cases/set-product-active.use-case.js';
 import {
 	PRODUCT_REPOSITORY,
 	type ProductRepository,
@@ -28,7 +29,10 @@ import {
 	CategoryMongoDocument,
 	CategoryMongoSchema,
 } from './infrastructure/persistence/category-mongo.schema.js';
-import { AdminAuthGuard } from './infrastructure/http/admin-auth.guard.js';
+import {
+	AdminAuthGuard,
+	CatalogAuthGuard,
+} from './infrastructure/http/admin-auth.guard.js';
 
 @Module({
 	imports: [
@@ -78,6 +82,7 @@ import { AdminAuthGuard } from './infrastructure/http/admin-auth.guard.js';
 			inject: [CATEGORY_REPOSITORY],
 		},
 		AdminAuthGuard,
+		CatalogAuthGuard,
 		{
 			provide: GetProductUseCase,
 			useFactory: (repository: ProductRepository) =>
@@ -88,6 +93,12 @@ import { AdminAuthGuard } from './infrastructure/http/admin-auth.guard.js';
 			provide: ListProductsUseCase,
 			useFactory: (repository: ProductRepository) =>
 				new ListProductsUseCase(repository),
+			inject: [PRODUCT_REPOSITORY],
+		},
+		{
+			provide: SetProductActiveUseCase,
+			useFactory: (repository: ProductRepository) =>
+				new SetProductActiveUseCase(repository),
 			inject: [PRODUCT_REPOSITORY],
 		},
 	],

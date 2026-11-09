@@ -7,4 +7,8 @@ export interface Product {
   categoryId?: string | null
   price: number
   stock: number
+  profileId?: string | null
+  active?: boolean
+  shopName?: string
+  shippingCost?: number
 }

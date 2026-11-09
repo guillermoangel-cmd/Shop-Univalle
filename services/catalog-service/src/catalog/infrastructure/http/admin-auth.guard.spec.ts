@@ -8,7 +8,12 @@ const secret = 'test-secret-for-catalog-guard';
 
 function createToken(role: string, expiresAt: number): string {
 	const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-	const payload = Buffer.from(JSON.stringify({ role, exp: expiresAt })).toString('base64url');
+	const payload = Buffer.from(JSON.stringify({
+		sub: 'user-id',
+		email: 'admin@correounivalle.edu.co',
+		role,
+		exp: expiresAt,
+	})).toString('base64url');
 	const content = `${header}.${payload}`;
 	const signature = createHmac('sha256', secret).update(content).digest('base64url');
 	return `${content}.${signature}`;
@@ -24,10 +29,10 @@ function contextFor(token?: string): ExecutionContext {
 }
 
 describe('AdminAuthGuard', () => {
-	it('allows a valid administrator token', () => {
+	it('allows a valid administrative token', () => {
 		process.env.JWT_SECRET = secret;
 		const guard = new AdminAuthGuard();
-		const token = createToken('ADMINISTRADOR', Date.now() / 1000 + 60);
+		const token = createToken('ADMINISTRATIVO', Date.now() / 1000 + 60);
 
 		expect(guard.canActivate(contextFor(token))).toBe(true);
 	});
@@ -38,7 +43,7 @@ describe('AdminAuthGuard', () => {
 
 		expect(() => guard.canActivate(contextFor())).toThrow(UnauthorizedException);
 		expect(() => guard.canActivate(contextFor(
-			createToken('ADMINISTRADOR', Date.now() / 1000 - 60),
+			createToken('ADMINISTRATIVO', Date.now() / 1000 - 60),
 		))).toThrow(UnauthorizedException);
 		expect(() => guard.canActivate(contextFor(
 			createToken('ESTUDIANTE', Date.now() / 1000 + 60),

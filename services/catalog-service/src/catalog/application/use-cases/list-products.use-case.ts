@@ -4,7 +4,7 @@ import type { ProductRepository } from '../../domain/ports/product.repository.js
 export class ListProductsUseCase {
 	constructor(private readonly productRepository: ProductRepository) {}
 
-	execute(): Promise<ProductEntity[]> {
-		return this.productRepository.findAll();
+	execute(profileId?: string, includeInactive = false): Promise<ProductEntity[]> {
+		return this.productRepository.findAll(profileId, includeInactive);
 	}
 }

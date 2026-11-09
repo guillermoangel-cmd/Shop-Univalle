@@ -6,7 +6,7 @@ import type { OrderRepository } from '../../domain/ports/order.repository.js';
 
 describe('CheckoutOrderUseCase', () => {
   it('creates an order from selected cart items and clears them from the cart', async () => {
-    let storedCart = CartEntity.createEmpty('user-1')
+    let storedCart = CartEntity.createEmpty('user-1', 'store-1', 3500)
       .addItem({
         productId: 'p1',
         name: 'Camiseta Oficial Univalle',
@@ -43,13 +43,21 @@ describe('CheckoutOrderUseCase', () => {
     };
 
     const useCase = new CheckoutOrderUseCase(cartRepo, orderRepo);
-    const result = await useCase.execute('user-1', 'AUTHENTICATED');
+    const result = await useCase.execute(
+      'user-1',
+      'AUTHENTICATED',
+      'store-1',
+      'Casa · Calle 1',
+      3500,
+    );
 
     expect(result.order.totalItems).toBe(2);
     expect(result.order.subtotal).toBe(90000);
     expect(result.order.status).toBe('PENDING_PAYMENT');
+    expect(result.order.storeProfileId).toBe('store-1');
+    expect(result.order.deliveryAddress).toBe('Casa · Calle 1');
+    expect(result.order.estimatedShipping).toBe(3500);
     expect(result.cart.items).toHaveLength(1);
     expect(result.cart.items[0].productId).toBe('p2');
   });
 });
-

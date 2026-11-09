@@ -12,15 +12,19 @@ export class CreateProductUseCase {
 		private readonly categoryRepository: CategoryRepository,
 	) {}
 
-	async execute(input: ProductData): Promise<ProductEntity> {
+	async execute(input: ProductData, profileId = input?.profileId): Promise<ProductEntity> {
 		if (!input || typeof input.categoryId !== 'string' || !input.categoryId.trim()) {
 			throw new CategoryNotFoundError('Selecciona una categoría válida');
 		}
-		const category = await this.categoryRepository.findById(input.categoryId);
+		const category = await this.categoryRepository.findById(input.categoryId, profileId);
 		if (!category || !category.active) {
 			throw new CategoryNotFoundError('La categoría seleccionada no existe o está inactiva');
 		}
-		const product = ProductEntity.create({ ...input, category: category.name });
+		const product = ProductEntity.create({
+			...input,
+			category: category.name,
+			profileId,
+		});
 		return this.productRepository.save(product);
 	}
 }

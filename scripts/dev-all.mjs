@@ -1,8 +1,47 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { createConnection } from 'node:net';
 import { resolve } from 'node:path';
 
 const rootDir = process.cwd();
+const composeMongoHosts = new Set([
+  'catalog-mongo',
+  'user-mongo',
+  'orders-mongo',
+]);
+
+function getLocalMongoUri(configuredUri, fallbackUri) {
+  const uri = configuredUri || fallbackUri;
+  const parsedUri = new URL(uri);
+  if (composeMongoHosts.has(parsedUri.hostname)) {
+    parsedUri.hostname = '127.0.0.1';
+  }
+  return parsedUri.toString();
+}
+
+function canConnectToLocalMongo(uri) {
+  const { hostname, port } = new URL(uri);
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    return Promise.resolve(true);
+  }
+
+  return new Promise((resolveConnection) => {
+    const socket = createConnection({
+      host: hostname,
+      port: Number(port) || 27017,
+    });
+    socket.setTimeout(1000);
+    socket.once('connect', () => {
+      socket.destroy();
+      resolveConnection(true);
+    });
+    socket.once('timeout', () => {
+      socket.destroy();
+      resolveConnection(false);
+    });
+    socket.once('error', () => resolveConnection(false));
+  });
+}
 
 function loadDotEnv() {
   const envPath = resolve(rootDir, '.env');
@@ -42,9 +81,10 @@ const services = [
     env: {
       ...baseEnv,
       PORT: '3002',
-      MONGODB_URI:
-        baseEnv.CATALOG_MONGODB_URI ||
+      MONGODB_URI: getLocalMongoUri(
+        baseEnv.CATALOG_MONGODB_URI,
         'mongodb://127.0.0.1:27017/univalle_catalog',
+      ),
     },
   },
   {
@@ -56,8 +96,10 @@ const services = [
     env: {
       ...baseEnv,
       PORT: '3003',
-      MONGODB_URI:
-        baseEnv.USER_MONGODB_URI || 'mongodb://127.0.0.1:27017/univalle_users',
+      MONGODB_URI: getLocalMongoUri(
+        baseEnv.USER_MONGODB_URI,
+        'mongodb://127.0.0.1:27017/univalle_users',
+      ),
     },
   },
   {
@@ -69,9 +111,10 @@ const services = [
     env: {
       ...baseEnv,
       PORT: '3004',
-      MONGODB_URI:
-        baseEnv.ORDERS_MONGODB_URI ||
+      MONGODB_URI: getLocalMongoUri(
+        baseEnv.ORDERS_MONGODB_URI,
         'mongodb://127.0.0.1:27017/univalle_orders',
+      ),
     },
   },
   {
@@ -114,6 +157,30 @@ console.log(' • Catalog Service       : http://localhost:3002');
 console.log(' • User Service          : http://localhost:3003');
 console.log(' • Orders Service        : http://localhost:3004');
 console.log('========================================================\n');
+
+const mongoServices = services.filter((service) => service.env.MONGODB_URI);
+const unavailableMongoServices = (
+  await Promise.all(
+    mongoServices.map(async (service) => ({
+      service,
+      available: await canConnectToLocalMongo(service.env.MONGODB_URI),
+    })),
+  )
+)
+  .filter(({ available }) => !available)
+  .map(({ service }) => service);
+
+if (unavailableMongoServices.length > 0) {
+  const unavailableEndpoints = unavailableMongoServices.map((service) => {
+    const { hostname, port } = new URL(service.env.MONGODB_URI);
+    return `${service.name.trim()} (${hostname}:${port || 27017})`;
+  });
+  console.error(
+    `MongoDB no responde para: ${unavailableEndpoints.join(', ')}. Inícialo o revisa la configuración antes de ejecutar este comando.`,
+  );
+  console.error('  docker run --rm --name univalle-users-mongo -p 27017:27017 mongo:8');
+  process.exit(1);
+}
 
 function prefixLines(tag, color, stream, target) {
   let buffer = '';
@@ -165,4 +232,3 @@ function shutdown() {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
-

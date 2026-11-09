@@ -70,5 +70,26 @@ describe('CartEntity', () => {
     const cart = CartEntity.createEmpty('estudiante-1');
     expect(() => cart.applyPromoCode('INVALIDO99')).toThrow(InvalidCartError);
   });
-});
 
+  it('keeps a buyer cart and shipping amount separate for each store', () => {
+    const firstStoreCart = CartEntity.createEmpty('buyer-1', 'store-1', 3000)
+      .addItem({
+        productId: 'store-1-product',
+        name: 'Producto 1',
+        category: 'General',
+        price: 10000,
+      });
+    const secondStoreCart = CartEntity.createEmpty('buyer-1', 'store-2', 7000)
+      .addItem({
+        productId: 'store-2-product',
+        name: 'Producto 2',
+        category: 'General',
+        price: 20000,
+      });
+
+    expect(firstStoreCart.toJSON().storeProfileId).toBe('store-1');
+    expect(firstStoreCart.getSummary().estimatedShipping).toBe(3000);
+    expect(secondStoreCart.toJSON().storeProfileId).toBe('store-2');
+    expect(secondStoreCart.getSummary().estimatedShipping).toBe(7000);
+  });
+});

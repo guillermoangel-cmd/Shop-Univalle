@@ -23,11 +23,14 @@ export class OrderEntity {
     public readonly promoCode: string | null,
     public readonly status: OrderStatus,
     public readonly createdAt: Date,
+    public readonly storeProfileId: string = 'default-store',
+    public readonly deliveryAddress: string = '',
   ) {}
 
   static createFromCart(
     cart: CartEntity,
     checkoutMode: CheckoutMode = 'AUTHENTICATED',
+    deliveryAddress = '',
   ): OrderEntity {
     const selectedItems = cart.items.filter((item) => item.selected);
     if (selectedItems.length === 0) {
@@ -54,7 +57,8 @@ export class OrderEntity {
       summary.promoCode,
       'PENDING_PAYMENT',
       new Date(),
+      cart.storeProfileId,
+      deliveryAddress,
     );
   }
 }
-

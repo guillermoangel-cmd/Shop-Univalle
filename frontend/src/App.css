@@ -147,6 +147,222 @@
   text-transform: uppercase;
 }
 
+.role-badge-button {
+  cursor: pointer;
+  font: inherit;
+}
+
+.role-badge-button:hover {
+  background: var(--forest);
+  color: #fff;
+}
+
+.welcome-message {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.welcome-message strong {
+  color: var(--ink);
+}
+
+.profile-button,
+.store-link-button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid var(--forest);
+  border-radius: 4px;
+  background: #fffefa;
+  color: var(--forest);
+  font: 600 12px/1 var(--body);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.profile-button:hover,
+.store-link-button:hover {
+  background: var(--forest);
+  color: #fff;
+}
+
+.store-link-button {
+  min-height: 34px;
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 22px clamp(20px, 5vw, 72px) 10px;
+}
+
+.shop-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+}
+
+.shop-card .eyebrow {
+  margin: 0;
+  font-size: 9px;
+}
+
+.shop-card h2 {
+  margin: 0;
+  color: var(--ink);
+  font: 500 21px/1.2 var(--display);
+}
+
+.shop-card p {
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.profile-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px clamp(20px, 5vw, 72px);
+  border-bottom: 1px solid var(--line);
+}
+
+.profile-page {
+  width: min(760px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 44px 0 70px;
+}
+
+.profile-page h1 {
+  margin: 0;
+  color: var(--ink);
+  font: 500 38px/1.15 var(--display);
+}
+
+.profile-intro {
+  margin: 10px 0 24px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.profile-form,
+.profile-addresses {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+}
+
+.profile-form h2,
+.profile-addresses h2,
+.moderation-section h2 {
+  margin: 0;
+  color: var(--ink);
+  font: 500 23px/1.2 var(--display);
+}
+
+.profile-form h3 {
+  margin: 0;
+  color: var(--ink);
+  font: 500 18px/1.2 var(--display);
+}
+
+.profile-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.profile-form input {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: white;
+  color: var(--ink);
+  font: 13px/1.4 var(--body);
+}
+
+.profile-addresses > p {
+  margin: -5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.profile-address-row,
+.moderation-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+}
+
+.profile-address-row label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.profile-address-row label > span,
+.moderation-row > span:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.profile-address-row label > span > span,
+.moderation-row small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.profile-address-form {
+  margin-top: 8px;
+  padding: 16px;
+}
+
+.profile-feedback {
+  padding: 11px;
+  background: #e8eee8;
+  color: var(--forest);
+  font-size: 12px;
+}
+
+.profile-feedback.error {
+  background: #f7e8e4;
+  color: #a63e2f;
+}
+
+.moderation-section {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.moderation-state {
+  color: #a63e2f;
+  font: 10px/1 var(--mono);
+  text-transform: uppercase;
+}
+
+.moderation-state.active {
+  color: var(--forest);
+}
+
 .admin-catalog-panel {
   margin: 0 clamp(20px, 5vw, 72px) 28px;
   padding: 24px;
@@ -508,12 +724,20 @@
     gap: 8px;
   }
 
+  .welcome-message {
+    display: none;
+  }
+
   .admin-panel-grid {
     grid-template-columns: 1fr;
   }
 
   .product-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .shop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -563,6 +787,7 @@
 
   .catalog-toolbar {
     align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .category-filter {
@@ -591,6 +816,27 @@
 
   .site-footer {
     flex-direction: column;
+  }
+
+  .shop-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-page-header {
+    gap: 10px;
+  }
+
+  .profile-page h1 {
+    font-size: 32px;
+  }
+
+  .profile-form,
+  .profile-addresses {
+    padding: 15px;
+  }
+
+  .moderation-row {
+    flex-wrap: wrap;
   }
 }
 

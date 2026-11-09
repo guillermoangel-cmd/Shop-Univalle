@@ -45,9 +45,10 @@ Shop-Univalle/
 |---|---|---|
 | Frontend | Interfaz de usuario de la aplicación. | React, TypeScript y Vite |
 | API Gateway | Punto de entrada y gestión de solicitudes hacia los servicios. | NestJS |
-| Catalog Service | Consulta de productos y categorías; escritura protegida para administradores. | NestJS, MongoDB |
-| User Service | Registro con hash de contraseña y filtro de dominios configurables. | NestJS, MongoDB |
-| Orders, Payments, Search, Recommendations | Componentes planificados, todavía sin implementación. | Pendiente |
+| Catalog Service | Tiendas, productos y categorías aislados por perfil; moderación por administrativos. | NestJS, MongoDB |
+| User Service | Autenticación, perfiles de tienda y direcciones de entrega. | NestJS, MongoDB |
+| Orders Service | Carritos y pedidos independientes por comprador y tienda. | NestJS, MongoDB |
+| Payments, Search, Recommendations | Componentes planificados, todavía sin implementación. | Pendiente |
 | Compose | Frontend, gateway, servicios activos y una BD por servicio. | Docker Compose |
 
 ## 🛠️ Tecnologías utilizadas
@@ -161,6 +162,10 @@ npm run start:dev
 Ejecuta cada componente en una terminal independiente. Consulta los archivos `package.json` y la documentación interna de cada servicio para verificar sus scripts, puertos y variables de entorno.
 
 En modo Vite, el frontend reenvía `/api` a `http://localhost:3000`; inicia el gateway y configura las URL/puertos de catálogo y usuarios para el entorno local.
+
+Cada cuenta tiene una tienda en `perfiles` y una lista de direcciones de entrega en `usuarios`. Productos y categorías se vinculan a la tienda del creador. Los administrativos pueden moderar tiendas y productos; no existe un rol `ADMINISTRADOR`. Cada carrito se guarda por comprador y tienda, y el pago usa la dirección seleccionada en el perfil del comprador.
+
+Para iniciar todos los componentes con `npm run dev`, MongoDB debe estar disponible en `localhost:27017`. El script adapta a `localhost` los nombres de host de MongoDB definidos para Docker Compose y avisa si la base local no está escuchando. Puedes iniciar MongoDB con `docker run --rm --name univalle-users-mongo -p 27017:27017 mongo:8`.
 
 ## 🐳 Ejecución con Docker
 
