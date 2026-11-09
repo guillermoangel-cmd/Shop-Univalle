@@ -21,7 +21,7 @@ La aplicación web esta desarrollada como proyecto académico. Su arquitectura e
 | Componente | Estado | Persistencia / interfaz |
 |---|---|---|
 | API Gateway | En implementación | Proxy REST a catálogo, categorías, usuarios, carrito y órdenes |
-| Catálogo | Tiendas por perfil | Productos y categorías aislados por perfil; moderación por `ADMINISTRATIVO`; MongoDB independiente (`univalle_catalog`) |
+| Catálogo | Tiendas por perfil | Productos y categorías aislados por perfil; moderación por `ADMINISTRATIVO`; MongoDB independiente (`univalle-catalog`) |
 | Usuarios | Registro, perfiles y direcciones | JWT, colección `perfiles` y direcciones del comprador en `usuarios`, MongoDB independiente |
 | Frontend | Tiendas, perfil y carrito | Vite/React; ajustes de tienda, selección de dirección, moderación y vista `/cart` |
 | Pedidos | MVP implementado | Carrito por comprador/tienda, costo de envío por perfil, checkout e historial en MongoDB (`univalle_orders`) |

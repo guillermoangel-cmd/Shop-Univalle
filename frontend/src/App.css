@@ -209,6 +209,21 @@
   background: #fffefa;
 }
 
+.shop-card > img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #e6e8df;
+}
+
+.catalog-store-image {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e6e8df;
+}
+
 .shop-card .eyebrow {
   margin: 0;
   font-size: 9px;
@@ -292,6 +307,34 @@
   background: white;
   color: var(--ink);
   font: 13px/1.4 var(--body);
+}
+
+.store-image-editor {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.store-image-editor img {
+  grid-row: span 2;
+  width: 120px;
+  height: 100px;
+  object-fit: cover;
+  background: #e6e8df;
+}
+
+.store-image-editor label {
+  display: grid;
+  gap: 6px;
+}
+
+.store-image-editor input {
+  padding: 6px;
+}
+
+.store-image-editor button {
+  justify-self: start;
 }
 
 .profile-addresses > p {
@@ -492,6 +535,60 @@
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--line);
+}
+
+.admin-product-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.admin-product-list h3 {
+  margin: 0 0 3px;
+  color: var(--ink);
+  font: 500 18px/1.25 var(--display);
+}
+
+.admin-product-row {
+  display: grid;
+  grid-template-columns: 90px repeat(2, minmax(120px, 1fr));
+  align-items: end;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+}
+
+.admin-product-row > img {
+  grid-row: span 2;
+  width: 90px;
+  height: 75px;
+  object-fit: cover;
+  background: #e6e8df;
+}
+
+.admin-product-row > label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-product-row input,
+.admin-product-row select {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: white;
+  color: var(--ink);
+  font: 12px/1.5 var(--body);
+}
+
+.admin-product-row .admin-form-row,
+.admin-product-row .admin-row-actions {
+  grid-column: 2 / -1;
 }
 
 .admin-row-actions {
@@ -773,6 +870,19 @@
     grid-template-columns: 1fr;
   }
 
+  .admin-product-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-product-row > img {
+    grid-row: auto;
+  }
+
+  .admin-product-row .admin-form-row,
+  .admin-product-row .admin-row-actions {
+    grid-column: auto;
+  }
+
   .admin-form-row {
     grid-template-columns: 1fr;
   }
@@ -833,6 +943,14 @@
   .profile-form,
   .profile-addresses {
     padding: 15px;
+  }
+
+  .store-image-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .store-image-editor img {
+    grid-row: auto;
   }
 
   .moderation-row {

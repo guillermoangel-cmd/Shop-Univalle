@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	Headers,
 	HttpException,
@@ -35,10 +36,28 @@ export class ProductsController {
 		return this.forward('get', `/products/manage${query}`, undefined, authorization);
 	}
 
+	@Get('moderation')
+	listForModeration(@Headers('authorization') authorization?: string) {
+		return this.forward('get', '/products/moderation', undefined, authorization);
+	}
+
 	@Get()
 	findAll(@Query('profileId') profileId?: string) {
 		const query = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
 		return this.forward('get', `/products${query}`);
+	}
+
+	@Get('image-references')
+	countImageReferences(
+		@Query('imageUrl') imageUrl: string,
+		@Headers('authorization') authorization?: string,
+	) {
+		return this.forward(
+			'get',
+			`/products/image-references?imageUrl=${encodeURIComponent(imageUrl ?? '')}`,
+			undefined,
+			authorization,
+		);
 	}
 
 	@Get(':id')
@@ -49,6 +68,44 @@ export class ProductsController {
 	@Post()
 	create(@Body() input: unknown, @Headers('authorization') authorization?: string) {
 		return this.forward('post', '/products', input, authorization);
+	}
+
+	@Patch(':id')
+	update(
+		@Param('id') id: string,
+		@Body() input: unknown,
+		@Headers('authorization') authorization?: string,
+	) {
+		return this.forward('patch', `/products/${encodeURIComponent(id)}`, input, authorization);
+	}
+
+	@Delete(':id')
+	remove(
+		@Param('id') id: string,
+		@Headers('authorization') authorization?: string,
+	) {
+		return this.forward('delete', `/products/${encodeURIComponent(id)}`, undefined, authorization);
+	}
+
+	@Delete(':id/moderation')
+	removeForModeration(
+		@Param('id') id: string,
+		@Headers('authorization') authorization?: string,
+	) {
+		return this.forward(
+			'delete',
+			`/products/${encodeURIComponent(id)}/moderation`,
+			undefined,
+			authorization,
+		);
+	}
+
+	@Patch(':id/restore')
+	restore(
+		@Param('id') id: string,
+		@Headers('authorization') authorization?: string,
+	) {
+		return this.forward('patch', `/products/${encodeURIComponent(id)}/restore`, undefined, authorization);
 	}
 
 	@Patch(':id/status')
@@ -66,7 +123,7 @@ export class ProductsController {
 	}
 
 	private async forward(
-		method: 'get' | 'post' | 'patch',
+		method: 'get' | 'post' | 'patch' | 'delete',
 		path: string,
 		input?: unknown,
 		authorization?: string,

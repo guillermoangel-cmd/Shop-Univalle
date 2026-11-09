@@ -19,6 +19,7 @@ describe('CreateProductUseCase', () => {
 		findAll: jest.fn(),
 		findById: jest.fn(),
 		findByCategoryId: jest.fn(),
+		countImageReferences: jest.fn(),
 		updateCategoryName: jest.fn(),
 		save: jest.fn(async (product) => product),
 		setActive: jest.fn(),

@@ -1,9 +1,12 @@
+export const DEFAULT_PROFILE_IMAGE = '/assets/default_profile/perfil_default.webp'
+
 export interface StoreProfile {
   id: string
   userId: string
   nickname: string
   address: string
   shippingCost: number
+  imageUrl: string
   active: boolean
   productCount?: number
 }
@@ -69,7 +72,7 @@ export function getMyProfile(accessToken: string): Promise<StoreProfile> {
 
 export function updateMyProfile(
   accessToken: string,
-  input: Pick<StoreProfile, 'nickname' | 'address' | 'shippingCost'>,
+  input: Partial<Pick<StoreProfile, 'nickname' | 'address' | 'shippingCost' | 'imageUrl'>>,
 ): Promise<StoreProfile> {
   return request('/api/users/profiles/me', accessToken, 'PATCH', input)
 }

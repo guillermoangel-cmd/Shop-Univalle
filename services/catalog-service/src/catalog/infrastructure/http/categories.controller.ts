@@ -21,7 +21,7 @@ import { DeactivateCategoryUseCase } from '../../application/use-cases/deactivat
 import { ListCategoriesUseCase } from '../../application/use-cases/list-categories.use-case.js';
 import { UpdateCategoryUseCase } from '../../application/use-cases/update-category.use-case.js';
 import { InvalidCategoryError, type CategoryData } from '../../domain/entities/category.entity.js';
-import { CatalogAuthGuard } from './admin-auth.guard.js';
+import { AdminAuthGuard, CatalogAuthGuard } from './admin-auth.guard.js';
 
 interface AuthenticatedCategoryRequest extends Request {
 	user: { sub: string; email: string; role: string };
@@ -46,6 +46,12 @@ export class CategoriesController {
 	@UseGuards(CatalogAuthGuard)
 	listForManagement(@Req() request: AuthenticatedCategoryRequest) {
 		return this.listCategories.execute(true, request.user.sub);
+	}
+
+	@Get('moderation')
+	@UseGuards(AdminAuthGuard)
+	listForModeration() {
+		return this.listCategories.execute(true);
 	}
 
 	@Post()
@@ -96,6 +102,26 @@ export class CategoriesController {
 	) {
 		try {
 			return await this.deactivateCategory.execute(id, request.user.sub);
+		} catch (error) {
+			this.handleError(error);
+		}
+	}
+
+	@Delete(':id/moderation')
+	@UseGuards(AdminAuthGuard)
+	async deactivateForModeration(@Param('id') id: string) {
+		try {
+			return await this.deactivateCategory.execute(id, undefined, true);
+		} catch (error) {
+			this.handleError(error);
+		}
+	}
+
+	@Patch(':id/moderation/activate')
+	@UseGuards(AdminAuthGuard)
+	async activateForModeration(@Param('id') id: string) {
+		try {
+			return await this.activateCategory.execute(id);
 		} catch (error) {
 			this.handleError(error);
 		}

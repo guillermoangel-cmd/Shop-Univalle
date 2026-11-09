@@ -38,6 +38,11 @@ export class CategoriesController {
 		return this.forward('get', '/categories/manage', undefined, authorization);
 	}
 
+	@Get('moderation')
+	listForModeration(@Headers('authorization') authorization?: string) {
+		return this.forward('get', '/categories/moderation', undefined, authorization);
+	}
+
 	@Post()
 	create(@Body() input: unknown, @Headers('authorization') authorization?: string) {
 		return this.forward('post', '/categories', input, authorization);
@@ -60,6 +65,32 @@ export class CategoriesController {
 	@Delete(':id')
 	deactivate(@Param('id') id: string, @Headers('authorization') authorization?: string) {
 		return this.forward('delete', `/categories/${encodeURIComponent(id)}`, undefined, authorization);
+	}
+
+	@Delete(':id/moderation')
+	removeForModeration(
+		@Param('id') id: string,
+		@Headers('authorization') authorization?: string,
+	) {
+		return this.forward(
+			'delete',
+			`/categories/${encodeURIComponent(id)}/moderation`,
+			undefined,
+			authorization,
+		);
+	}
+
+	@Patch(':id/moderation/activate')
+	activateForModeration(
+		@Param('id') id: string,
+		@Headers('authorization') authorization?: string,
+	) {
+		return this.forward(
+			'patch',
+			`/categories/${encodeURIComponent(id)}/moderation/activate`,
+			undefined,
+			authorization,
+		);
 	}
 
 	private async forward(

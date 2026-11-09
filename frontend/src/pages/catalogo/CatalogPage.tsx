@@ -1,6 +1,6 @@
 import { startTransition, useDeferredValue, useEffect, useState } from 'react'
 import type { Product } from '../../types/product'
-import { listStoreProfiles, type StoreProfile } from '../../services/usersApi'
+import { DEFAULT_PROFILE_IMAGE, listStoreProfiles, type StoreProfile } from '../../services/usersApi'
 import AdminCatalogPanel, { type CatalogCategory } from './AdminCatalogPanel'
 import '../../App.css'
 
@@ -73,7 +73,10 @@ function CatalogPage({
         const validProducts = Array.isArray(productData)
           ? (productData as Product[]).filter(
               (product) => product.profileId && activeProfileIds.has(product.profileId),
-            )
+            ).map((product) => ({
+              ...product,
+              shopName: profileData.find((profile) => profile.id === product.profileId)?.nickname,
+            }))
           : []
 
         const validCategories = Array.isArray(categoryData)
@@ -236,6 +239,9 @@ function CatalogPage({
             <p className="eyebrow">Hecho en comunidad</p>
             <h1>{selectedStore ? selectedStore.nickname : 'El catálogo Univalle'}</h1>
           </div>
+          {selectedStore && (
+            <img className="catalog-store-image" src={selectedStore.imageUrl || DEFAULT_PROFILE_IMAGE} alt={`Imagen de ${selectedStore.nickname}`} />
+          )}
           <p className="intro-note">
             {selectedStore
               ? `Tienda de la comunidad universitaria · Envío ${currency.format(selectedStore.shippingCost)}`
@@ -285,6 +291,7 @@ function CatalogPage({
           <section className="shop-grid" aria-label="Tiendas de la comunidad">
             {storesWithCounts.map((profile) => (
               <article className="shop-card" key={profile.id}>
+                <img src={profile.imageUrl || DEFAULT_PROFILE_IMAGE} alt={`Imagen de ${profile.nickname}`} />
                 <span className="eyebrow">Tienda Univalle</span>
                 <h2>{profile.nickname}</h2>
                 <p>{profile.productCount} productos</p>
@@ -325,17 +332,21 @@ function CatalogPage({
                 style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
               >
                 <div className="product-media">
-                  {product.imageUrl ? (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="image-fallback">{product.category}</span>
-                  )}
+                  <img
+                    src={product.imageUrl || '/assets/default_products/producto_default.webp'}
+                    alt={product.name}
+                    loading="lazy"
+                    onError={(event) => {
+                      const fallback = '/assets/default_products/producto_default.webp'
+                      if (event.currentTarget.src !== new URL(fallback, window.location.href).href) {
+                        event.currentTarget.src = fallback
+                      }
+                    }}
+                  />
                 </div>
-                <p className="product-category">{product.category}</p>
+                <p className="product-category">
+                  {product.category} — {product.shopName ?? 'Tienda'}
+                </p>
                 <h2>{product.name}</h2>
                 <p className="product-description">
                   {product.description || 'Una creación de la comunidad universitaria.'}

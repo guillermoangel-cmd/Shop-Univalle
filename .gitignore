@@ -15,6 +15,7 @@ coverage/
 .vite/
 *.tsbuildinfo
 .turbo/
+uploads/
 
 # Logs and temporary files
 *.log

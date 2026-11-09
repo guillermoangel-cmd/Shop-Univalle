@@ -165,6 +165,10 @@ En modo Vite, el frontend reenvía `/api` a `http://localhost:3000`; inicia el g
 
 Cada cuenta tiene una tienda en `perfiles` y una lista de direcciones de entrega en `usuarios`. Productos y categorías se vinculan a la tienda del creador. Los administrativos pueden moderar tiendas y productos; no existe un rol `ADMINISTRADOR`. Cada carrito se guarda por comprador y tienda, y el pago usa la dirección seleccionada en el perfil del comprador.
 
+Desde la página de la propia tienda, los usuarios pueden editar y eliminar sus productos y categorías; las eliminaciones del catálogo son reversibles. Las imágenes de productos y de tienda aceptan archivos PNG, JPEG o WebP de hasta 5 MB. Si no se configura una imagen o se restablece, se usa `frontend/public/assets/default_products/producto_default.webp` o `frontend/public/assets/default_profile/perfil_default.webp`. La imagen de tienda también aparece en las tarjetas y la vista de catálogo. Al reemplazar o restablecer una imagen se elimina el archivo anterior si ya no está asociado a otro producto o tienda. Las cargas se sirven desde `/uploads/assets/user_productos_img` y `/uploads/assets/user_perfiles_img` y, en Docker, se conservan en el volumen `gateway-uploads`.
+
+La gestión del catálogo desde el perfil siempre se limita a productos y categorías de la cuenta autenticada. La pantalla administrativa, en cambio, lista productos y categorías de todas las tiendas con el apodo de la tienda creadora, y permite desactivarlos o reactivarlos.
+
 Para iniciar todos los componentes con `npm run dev`, MongoDB debe estar disponible en `localhost:27017`. El script adapta a `localhost` los nombres de host de MongoDB definidos para Docker Compose y avisa si la base local no está escuchando. Puedes iniciar MongoDB con `docker run --rm --name univalle-users-mongo -p 27017:27017 mongo:8`.
 
 ## 🐳 Ejecución con Docker

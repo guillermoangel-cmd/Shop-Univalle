@@ -9,6 +9,9 @@ export interface ProductData {
 	profileId?: string;
 }
 
+export const DEFAULT_PRODUCT_IMAGE =
+	'/assets/default_products/producto_default.webp';
+
 export class InvalidProductError extends Error {}
 
 export class ProductEntity {
@@ -49,7 +52,9 @@ export class ProductEntity {
 			null,
 			name,
 			typeof data.description === 'string' ? data.description.trim() : '',
-			typeof data.imageUrl === 'string' ? data.imageUrl.trim() : '',
+			typeof data.imageUrl === 'string' && data.imageUrl.trim()
+				? data.imageUrl.trim()
+				: DEFAULT_PRODUCT_IMAGE,
 			category,
 			data.price,
 			data.stock,
