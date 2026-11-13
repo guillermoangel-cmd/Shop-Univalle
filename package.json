@@ -5,6 +5,8 @@
   "description": "Orquestador principal de microservicios y frontend para Univalle Shop",
   "scripts": {
     "dev": "node scripts/dev-all.mjs",
+    "dev:clean": "node scripts/free-ports.mjs && node scripts/dev-all.mjs",
+    "free-ports": "node scripts/free-ports.mjs",
     "build": "npm run build --prefix services/catalog-service && npm run build --prefix services/user-service && npm run build --prefix services/orders-service && npm run build --prefix api-gateway && npm run build --prefix frontend",
     "test": "npm test --prefix services/catalog-service && npm test --prefix services/user-service && npm test --prefix services/orders-service",
     "docker:up": "docker compose up --build",

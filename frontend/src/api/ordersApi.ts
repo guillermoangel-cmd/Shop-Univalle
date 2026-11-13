@@ -3,44 +3,7 @@ import type { Product } from '../types/product'
 
 const DEFAULT_SHIPPING_COST = 8000
 
-export const DEFAULT_UNIVALLE_PRODUCTS: Product[] = [
-  {
-    id: 'uv-camiseta-2026',
-    name: 'Camiseta Oficial Univalle',
-    category: 'ROPA',
-    description: 'Colección 2026 · Talla: M',
-    imageUrl: '',
-    price: 45000,
-    stock: 25,
-  },
-  {
-    id: 'uv-agenda-2026',
-    name: 'Agenda Académica 2026',
-    category: 'ACADÉMICO',
-    description: 'Material · Talla: Única',
-    imageUrl: '',
-    price: 28000,
-    stock: 40,
-  },
-  {
-    id: 'uv-taza-75',
-    name: 'Taza Univalle 75 Años',
-    category: 'ACCESORIOS',
-    description: 'Aniversario · Talla: Única',
-    imageUrl: '',
-    price: 18000,
-    stock: 30,
-  },
-  {
-    id: 'uv-maletin-2026',
-    name: 'Maletín Universitario',
-    category: 'BOLSOS',
-    description: 'Colección 2026 · Talla: Única',
-    imageUrl: '',
-    price: 120000,
-    stock: 15,
-  },
-]
+export const DEFAULT_UNIVALLE_PRODUCTS: Product[] = []
 
 async function requestJson<T>(
   path: string,
@@ -106,7 +69,7 @@ export function addProductToCart(
   quantity: number,
   accessToken: string,
 ): Promise<CartState> {
-  const storeProfileId = product.profileId || ''
+  const storeProfileId = product.profileId || 'default-store'
   return requestJson(
     '/api/cart/items',
     accessToken,

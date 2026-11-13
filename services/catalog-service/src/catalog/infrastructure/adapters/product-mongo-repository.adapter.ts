@@ -5,48 +5,7 @@ import { DEFAULT_PRODUCT_IMAGE, ProductEntity } from '../../domain/entities/prod
 import type { ProductRepository } from '../../domain/ports/product.repository.js';
 import { ProductMongoDocument } from '../persistence/product-mongo.schema.js';
 
-const DEFAULT_PRODUCTS: ProductEntity[] = [
-  new ProductEntity(
-    'uv-camiseta-2026',
-    'Camiseta Oficial Univalle',
-    'Colección 2026 · Talla: M',
-    DEFAULT_PRODUCT_IMAGE,
-    'ROPA',
-    45000,
-    25,
-    null,
-  ),
-  new ProductEntity(
-    'uv-agenda-2026',
-    'Agenda Académica 2026',
-    'Material · Talla: Única',
-    DEFAULT_PRODUCT_IMAGE,
-    'ACADÉMICO',
-    28000,
-    40,
-    null,
-  ),
-  new ProductEntity(
-    'uv-taza-75',
-    'Taza Univalle 75 Años',
-    'Aniversario · Talla: Única',
-    DEFAULT_PRODUCT_IMAGE,
-    'ACCESORIOS',
-    18000,
-    30,
-    null,
-  ),
-  new ProductEntity(
-    'uv-maletin-2026',
-    'Maletín Universitario',
-    'Colección 2026 · Talla: Única',
-    DEFAULT_PRODUCT_IMAGE,
-    'BOLSOS',
-    120000,
-    15,
-    null,
-  ),
-];
+const DEFAULT_PRODUCTS: ProductEntity[] = [];
 
 @Injectable()
 export class ProductMongoRepositoryAdapter implements ProductRepository {

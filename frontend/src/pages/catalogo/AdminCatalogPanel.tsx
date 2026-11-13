@@ -1,29 +1,34 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import type { Product } from '../../types/product'
-import { deleteProductImage, uploadProductImage } from '../../services/uploadsApi'
-
-const DEFAULT_PRODUCT_IMAGE = '/assets/default_products/producto_default.webp'
-const isUploadedProductImage = (imageUrl: string) =>
-  imageUrl.startsWith('/uploads/assets/user_productos_img/')
+import { deleteProductImage, uploadProductImage } from '../../api/uploadsApi'
+import { DEFAULT_PRODUCT_IMAGE, type Product } from '../../types/product'
+import './CatalogPage.css'
 
 export interface CatalogCategory {
   id: string
   name: string
   description: string
-  active: boolean
+  profileId?: string
+  active?: boolean
 }
 
 interface AdminCatalogPanelProps {
   accessToken: string
-  categories: CatalogCategory[]
-  onChanged: () => void
+  userName?: string
+  role?: string
+  bagCount?: number
+  onBack?: () => void
+  onOpenProfile?: () => void
+  onOpenCart?: () => void
+  onOpenModeration?: () => void
+  onLogout?: () => void
+  onChanged?: () => void
 }
 
 async function adminRequest(
   path: string,
   accessToken: string,
   method: 'POST' | 'PATCH' | 'DELETE',
-  body?: Record<string, string | number>,
+  body?: unknown,
 ) {
   const response = await fetch(path, {
     method,
@@ -31,14 +36,26 @@ async function adminRequest(
       Authorization: `Bearer ${accessToken}`,
       ...(body ? { 'Content-Type': 'application/json' } : {}),
     },
-    body: body ? JSON.stringify(body) : undefined,
+    ...(body ? { body: JSON.stringify(body) } : {}),
   })
+  if (response.ok) return
+  let message = 'No se pudo completar la operación.'
+  try {
+    const result = (await response.json()) as { message?: string | string[] }
+    if (Array.isArray(result.message)) message = result.message.join(' ')
+    else if (result.message) message = result.message
+  } catch {
+    // Keep the default message when the response body is empty.
+  }
+  throw new Error(message)
+}
 
-  if (!response.ok) {
-    const result = await response.json() as { message?: string | string[] }
-    throw new Error(Array.isArray(result.message)
-      ? result.message.join(' ')
-      : result.message || 'No se pudo completar la operación.')
+function isUploadedProductImage(imageUrl: string): boolean {
+  try {
+    const parsed = new URL(imageUrl, window.location.origin)
+    return parsed.pathname.startsWith('/uploads/products/')
+  } catch {
+    return false
   }
 }
 
@@ -57,63 +74,134 @@ function CategoryRow({
   const [description, setDescription] = useState(category.description)
   const [saving, setSaving] = useState(false)
 
+  useEffect(() => {
+    setName(category.name)
+    setDescription(category.description)
+  }, [category.description, category.name])
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSaving(true)
     onError('')
     try {
-      await adminRequest(`/api/categories/${encodeURIComponent(category.id)}`, accessToken, 'PATCH', {
-        name: name.trim(),
-        description: description.trim(),
-      })
+      await adminRequest(
+        `/api/categories/${encodeURIComponent(category.id)}`,
+        accessToken,
+        'PATCH',
+        {
+          name: name.trim(),
+          description: description.trim(),
+        },
+      )
       onChanged()
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'No se pudo actualizar la categoría.')
+      onError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo actualizar la categoría.',
+      )
     } finally {
       setSaving(false)
     }
   }
 
-  async function deactivate() {
+  async function remove() {
     if (!window.confirm(`¿Eliminar la categoría "${category.name}"?`)) return
+    setSaving(true)
     onError('')
     try {
-      await adminRequest(`/api/categories/${encodeURIComponent(category.id)}`, accessToken, 'DELETE')
+      await adminRequest(
+        `/api/categories/${encodeURIComponent(category.id)}`,
+        accessToken,
+        'DELETE',
+      )
       onChanged()
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'No se pudo eliminar la categoría.')
+      onError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo eliminar la categoría.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function restore() {
+    setSaving(true)
+    onError('')
+    try {
+      await adminRequest(
+        `/api/categories/${encodeURIComponent(category.id)}/restore`,
+        accessToken,
+        'PATCH',
+      )
+      onChanged()
+    } catch (error) {
+      onError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo reactivar la categoría.',
+      )
+    } finally {
+      setSaving(false)
     }
   }
 
   return (
-    <form className="admin-category-row" onSubmit={save}>
-      <label>
-        <span>Nombre</span>
-        <input required maxLength={80} disabled={!category.active} value={name} onChange={(event) => setName(event.target.value)} />
-      </label>
-      <label>
-        <span>Descripción</span>
-        <input maxLength={240} disabled={!category.active} value={description} onChange={(event) => setDescription(event.target.value)} />
-      </label>
-      <div className="admin-row-actions">
-        {category.active && <button className="admin-secondary-button" type="submit" disabled={saving}>
-          {saving ? 'Guardando…' : 'Guardar'}
-        </button>}
+    <form className="uv-crud-item-row" onSubmit={(event) => void save(event)}>
+      <div className="uv-crud-row-fields">
+        <label className="uv-crud-field">
+          <span>Nombre de categoría</span>
+          <input
+            required
+            maxLength={80}
+            disabled={!category.active || saving}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </label>
+        <label className="uv-crud-field">
+          <span>Descripción</span>
+          <input
+            maxLength={240}
+            disabled={!category.active || saving}
+            value={description}
+            placeholder="Sin descripción"
+            onChange={(event) => setDescription(event.target.value)}
+          />
+        </label>
+      </div>
+      <div className="uv-crud-row-actions">
+        <span
+          className={`uv-status-badge ${category.active ? 'active' : 'inactive'}`}
+        >
+          {category.active ? 'Activa' : 'Inactiva'}
+        </span>
         {category.active ? (
-          <button className="admin-danger-button" type="button" onClick={deactivate}>Eliminar</button>
+          <>
+            <button
+              className="uv-crud-btn secondary"
+              type="submit"
+              disabled={saving}
+            >
+              {saving ? 'Guardando…' : 'Guardar'}
+            </button>
+            <button
+              className="uv-crud-btn danger"
+              type="button"
+              disabled={saving}
+              onClick={() => void remove()}
+            >
+              Eliminar
+            </button>
+          </>
         ) : (
           <button
-            className="admin-secondary-button"
+            className="uv-crud-btn secondary"
             type="button"
-            onClick={async () => {
-              onError('')
-              try {
-                await adminRequest(`/api/categories/${encodeURIComponent(category.id)}/activate`, accessToken, 'PATCH')
-                onChanged()
-              } catch (error) {
-                onError(error instanceof Error ? error.message : 'No se pudo reactivar la categoría.')
-              }
-            }}
+            disabled={saving}
+            onClick={() => void restore()}
           >
             Reactivar
           </button>
@@ -138,12 +226,24 @@ function ProductRow({
 }) {
   const [name, setName] = useState(product.name)
   const [description, setDescription] = useState(product.description)
-  const [imageUrl, setImageUrl] = useState(product.imageUrl || DEFAULT_PRODUCT_IMAGE)
-  const [categoryId, setCategoryId] = useState(product.categoryId || '')
+  const [imageUrl, setImageUrl] = useState(
+    product.imageUrl || DEFAULT_PRODUCT_IMAGE,
+  )
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [categoryId, setCategoryId] = useState(product.categoryId ?? '')
   const [price, setPrice] = useState(String(product.price))
   const [stock, setStock] = useState(String(product.stock))
-  const [imageFile, setImageFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setName(product.name)
+    setDescription(product.description)
+    setImageUrl(product.imageUrl || DEFAULT_PRODUCT_IMAGE)
+    setImageFile(null)
+    setCategoryId(product.categoryId ?? '')
+    setPrice(String(product.price))
+    setStock(String(product.stock))
+  }, [product])
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -153,43 +253,88 @@ function ProductRow({
       const savedImageUrl = imageFile
         ? await uploadProductImage(accessToken, imageFile)
         : imageUrl.trim() || DEFAULT_PRODUCT_IMAGE
-      await adminRequest(`/api/products/${encodeURIComponent(product.id)}`, accessToken, 'PATCH', {
-        name: name.trim(),
-        description: description.trim(),
-        imageUrl: savedImageUrl,
-        categoryId,
-        price: Number(price),
-        stock: Number(stock),
-      })
+      await adminRequest(
+        `/api/products/${encodeURIComponent(product.id)}`,
+        accessToken,
+        'PATCH',
+        {
+          name: name.trim(),
+          description: description.trim(),
+          imageUrl: savedImageUrl,
+          categoryId,
+          price: Number(price),
+          stock: Number(stock),
+        },
+      )
       onChanged()
-      if (product.imageUrl && isUploadedProductImage(product.imageUrl) && product.imageUrl !== savedImageUrl) {
-        const deleted = await deleteProductImage(accessToken, product.id, product.imageUrl)
-        if (!deleted) onError('El producto se guardó; la imagen anterior se conserva porque aún está en uso.')
+      if (
+        product.imageUrl &&
+        isUploadedProductImage(product.imageUrl) &&
+        product.imageUrl !== savedImageUrl
+      ) {
+        const deleted = await deleteProductImage(
+          accessToken,
+          product.id,
+          product.imageUrl,
+        )
+        if (!deleted) {
+          onError(
+            'El producto se guardó; la imagen anterior se conserva porque aún está en uso.',
+          )
+        }
       }
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'No se pudo actualizar el producto.')
+      onError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo actualizar el producto.',
+      )
     } finally {
       setSaving(false)
     }
   }
 
   async function remove() {
-    if (!window.confirm(`¿Eliminar el producto "${product.name}" del catálogo?`)) return
+    if (
+      !window.confirm(`¿Eliminar el producto "${product.name}" del catálogo?`)
+    )
+      return
     setSaving(true)
     onError('')
     try {
       if (product.imageUrl && isUploadedProductImage(product.imageUrl)) {
-        await adminRequest(`/api/products/${encodeURIComponent(product.id)}`, accessToken, 'PATCH', {
-          imageUrl: DEFAULT_PRODUCT_IMAGE,
-        })
+        await adminRequest(
+          `/api/products/${encodeURIComponent(product.id)}`,
+          accessToken,
+          'PATCH',
+          {
+            imageUrl: DEFAULT_PRODUCT_IMAGE,
+          },
+        )
         onChanged()
-        const deleted = await deleteProductImage(accessToken, product.id, product.imageUrl)
-        if (!deleted) onError('El producto se eliminará; la imagen se conserva porque aún está en uso.')
+        const deleted = await deleteProductImage(
+          accessToken,
+          product.id,
+          product.imageUrl,
+        )
+        if (!deleted) {
+          onError(
+            'El producto se eliminará; la imagen se conserva porque aún está en uso.',
+          )
+        }
       }
-      await adminRequest(`/api/products/${encodeURIComponent(product.id)}`, accessToken, 'DELETE')
+      await adminRequest(
+        `/api/products/${encodeURIComponent(product.id)}`,
+        accessToken,
+        'DELETE',
+      )
       onChanged()
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'No se pudo eliminar el producto.')
+      onError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo eliminar el producto.',
+      )
     } finally {
       setSaving(false)
     }
@@ -199,93 +344,194 @@ function ProductRow({
     setSaving(true)
     onError('')
     try {
-      await adminRequest(`/api/products/${encodeURIComponent(product.id)}/restore`, accessToken, 'PATCH')
+      await adminRequest(
+        `/api/products/${encodeURIComponent(product.id)}/restore`,
+        accessToken,
+        'PATCH',
+      )
       onChanged()
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'No se pudo reactivar el producto.')
+      onError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo reactivar el producto.',
+      )
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <form className="admin-product-row" onSubmit={(event) => void save(event)}>
-      <img
-        src={imageUrl}
-        alt=""
-        onError={(event) => {
-          if (event.currentTarget.src !== new URL(DEFAULT_PRODUCT_IMAGE, window.location.href).href) {
-            event.currentTarget.src = DEFAULT_PRODUCT_IMAGE
-          }
-        }}
-      />
-      <label>
-        <span>Nombre</span>
-        <input required maxLength={120} disabled={!product.active || saving} value={name} onChange={(event) => setName(event.target.value)} />
-      </label>
-      <label>
-        <span>Descripción</span>
-        <input maxLength={1000} disabled={!product.active || saving} value={description} onChange={(event) => setDescription(event.target.value)} />
-      </label>
-      <label>
-        <span>URL de imagen</span>
-        <input disabled={!product.active || saving || Boolean(imageFile)} value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} />
-      </label>
-      <label>
-        <span>Subir imagen</span>
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          disabled={!product.active || saving}
-          onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
+    <form className="uv-crud-product-card" onSubmit={(event) => void save(event)}>
+      <div className="uv-crud-product-top">
+        <img
+          src={imageUrl}
+          alt={product.name}
+          className="uv-crud-product-thumb"
+          onError={(event) => {
+            if (
+              event.currentTarget.src !==
+              new URL(DEFAULT_PRODUCT_IMAGE, window.location.href).href
+            ) {
+              event.currentTarget.src = DEFAULT_PRODUCT_IMAGE
+            }
+          }}
         />
-      </label>
-      <div className="admin-form-row">
-        <label>
-          <span>Categoría</span>
-          <select required disabled={!product.active || saving} value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-            <option value="">Selecciona</option>
-            {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>Precio (COP)</span>
-          <input required type="number" min="1" step="1" disabled={!product.active || saving} value={price} onChange={(event) => setPrice(event.target.value)} />
-        </label>
-        <label>
-          <span>Existencias</span>
-          <input required type="number" min="0" step="1" disabled={!product.active || saving} value={stock} onChange={(event) => setStock(event.target.value)} />
-        </label>
+        <div className="uv-crud-product-main-fields">
+          <div className="uv-crud-grid-2">
+            <label className="uv-crud-field">
+              <span>Nombre del producto</span>
+              <input
+                required
+                maxLength={120}
+                disabled={!product.active || saving}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </label>
+            <label className="uv-crud-field">
+              <span>Categoría</span>
+              <select
+                required
+                disabled={!product.active || saving}
+                value={categoryId}
+                onChange={(event) => setCategoryId(event.target.value)}
+              >
+                <option value="">Selecciona</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label className="uv-crud-field">
+            <span>Descripción</span>
+            <input
+              maxLength={1000}
+              disabled={!product.active || saving}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </label>
+
+          <div className="uv-crud-grid-4">
+            <label className="uv-crud-field">
+              <span>Precio (COP)</span>
+              <input
+                required
+                type="number"
+                min="1"
+                step="1"
+                disabled={!product.active || saving}
+                value={price}
+                onChange={(event) => setPrice(event.target.value)}
+              />
+            </label>
+            <label className="uv-crud-field">
+              <span>Existencias</span>
+              <input
+                required
+                type="number"
+                min="0"
+                step="1"
+                disabled={!product.active || saving}
+                value={stock}
+                onChange={(event) => setStock(event.target.value)}
+              />
+            </label>
+            <label className="uv-crud-field">
+              <span>URL de imagen</span>
+              <input
+                disabled={!product.active || saving || Boolean(imageFile)}
+                value={imageUrl}
+                onChange={(event) => setImageUrl(event.target.value)}
+              />
+            </label>
+            <label className="uv-crud-field">
+              <span>Reemplazar archivo</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                disabled={!product.active || saving}
+                onChange={(event) =>
+                  setImageFile(event.target.files?.[0] ?? null)
+                }
+              />
+            </label>
+          </div>
+        </div>
       </div>
-      <div className="admin-row-actions">
-        {product.active ? (
-          <>
-            <button className="admin-secondary-button" type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar'}</button>
+
+      <div className="uv-crud-product-footer">
+        <span
+          className={`uv-status-badge ${product.active ? 'active' : 'inactive'}`}
+        >
+          {product.active ? 'Publicado' : 'Eliminado'}
+        </span>
+
+        <div className="uv-crud-row-actions">
+          {product.active ? (
+            <>
+              <button
+                className="uv-crud-btn secondary"
+                type="button"
+                disabled={
+                  saving || (imageUrl === DEFAULT_PRODUCT_IMAGE && !imageFile)
+                }
+                onClick={() => {
+                  setImageUrl(DEFAULT_PRODUCT_IMAGE)
+                  setImageFile(null)
+                }}
+              >
+                Imagen por defecto
+              </button>
+              <button
+                className="uv-crud-btn primary"
+                type="submit"
+                disabled={saving}
+              >
+                {saving ? 'Guardando…' : 'Guardar cambios'}
+              </button>
+              <button
+                className="uv-crud-btn danger"
+                type="button"
+                disabled={saving}
+                onClick={() => void remove()}
+              >
+                Eliminar
+              </button>
+            </>
+          ) : (
             <button
-              className="admin-secondary-button"
+              className="uv-crud-btn secondary"
               type="button"
-              disabled={saving || imageUrl === DEFAULT_PRODUCT_IMAGE && !imageFile}
-              onClick={() => {
-                setImageUrl(DEFAULT_PRODUCT_IMAGE)
-                setImageFile(null)
-              }}
+              disabled={saving}
+              onClick={() => void restore()}
             >
-              Imagen predeterminada
+              Reactivar producto
             </button>
-            <button className="admin-danger-button" type="button" disabled={saving} onClick={() => void remove()}>Eliminar</button>
-          </>
-        ) : (
-          <>
-            <span className="admin-hint">Producto eliminado</span>
-            <button className="admin-secondary-button" type="button" disabled={saving} onClick={() => void restore()}>Reactivar</button>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </form>
   )
 }
 
-function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogPanelProps) {
+function AdminCatalogPanel({
+  accessToken,
+  userName = 'Usuario',
+  role = 'ADMINISTRATIVO',
+  bagCount = 0,
+  onBack,
+  onOpenProfile,
+  onOpenCart,
+  onOpenModeration,
+  onLogout,
+  onChanged,
+}: AdminCatalogPanelProps) {
   const [categoryName, setCategoryName] = useState('')
   const [categoryDescription, setCategoryDescription] = useState('')
   const [productName, setProductName] = useState('')
@@ -295,12 +541,29 @@ function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogP
   const [productCategory, setProductCategory] = useState('')
   const [productPrice, setProductPrice] = useState('')
   const [productStock, setProductStock] = useState('')
-  const [managedCategories, setManagedCategories] = useState<CatalogCategory[]>([])
+  const [managedCategories, setManagedCategories] = useState<CatalogCategory[]>(
+    [],
+  )
   const [managedProducts, setManagedProducts] = useState<Product[]>([])
   const [categoryLoadError, setCategoryLoadError] = useState('')
   const [productLoadError, setProductLoadError] = useState('')
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const isAdmin = role === 'ADMINISTRATIVO' || role === 'ADMINISTRADOR'
+  const roleLabel = isAdmin
+    ? 'Administrador'
+    : role === 'DOCENTE'
+      ? 'Docente'
+      : 'Estudiante'
+
+  const activeCategories = managedCategories.filter(
+    (category) => category.active !== false,
+  )
+  const effectiveCategoryId =
+    productCategory && activeCategories.some((c) => c.id === productCategory)
+      ? productCategory
+      : activeCategories[0]?.id ?? ''
 
   async function refreshManagedCategories() {
     try {
@@ -308,15 +571,21 @@ function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogP
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       if (!response.ok) {
-        const result = await response.json() as { message?: string }
-        throw new Error(result.message || 'No se pudieron consultar las categorías.')
+        const result = (await response.json()) as { message?: string }
+        throw new Error(
+          result.message || 'No se pudieron consultar las categorías.',
+        )
       }
-      const result = await response.json() as unknown
-      if (!Array.isArray(result)) throw new Error('La respuesta de categorías no es válida.')
+      const result = (await response.json()) as unknown
+      if (!Array.isArray(result))
+        throw new Error('La respuesta de categorías no es válida.')
       setManagedCategories(result as CatalogCategory[])
       setCategoryLoadError('')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'No se pudieron consultar las categorías.'
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'No se pudieron consultar las categorías.'
       setCategoryLoadError(errorMessage)
       setMessage(errorMessage)
     }
@@ -328,15 +597,21 @@ function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogP
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       if (!response.ok) {
-        const result = await response.json() as { message?: string }
-        throw new Error(result.message || 'No se pudieron consultar los productos.')
+        const result = (await response.json()) as { message?: string }
+        throw new Error(
+          result.message || 'No se pudieron consultar los productos.',
+        )
       }
-      const result = await response.json() as unknown
-      if (!Array.isArray(result)) throw new Error('La respuesta de productos no es válida.')
+      const result = (await response.json()) as unknown
+      if (!Array.isArray(result))
+        throw new Error('La respuesta de productos no es válida.')
       setManagedProducts(result as Product[])
       setProductLoadError('')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'No se pudieron consultar los productos.'
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'No se pudieron consultar los productos.'
       setProductLoadError(errorMessage)
       setMessage(errorMessage)
     }
@@ -354,10 +629,14 @@ function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogP
           categoryResponse.json() as Promise<unknown>,
           productResponse.json() as Promise<unknown>,
         ])
-        if (!categoryResponse.ok) throw new Error('No se pudieron consultar las categorías.')
-        if (!productResponse.ok) throw new Error('No se pudieron consultar los productos.')
-        if (!Array.isArray(categoryData)) throw new Error('La respuesta de categorías no es válida.')
-        if (!Array.isArray(productData)) throw new Error('La respuesta de productos no es válida.')
+        if (!categoryResponse.ok)
+          throw new Error('No se pudieron consultar las categorías.')
+        if (!productResponse.ok)
+          throw new Error('No se pudieron consultar los productos.')
+        if (!Array.isArray(categoryData))
+          throw new Error('La respuesta de categorías no es válida.')
+        if (!Array.isArray(productData))
+          throw new Error('La respuesta de productos no es válida.')
         if (active) {
           setManagedCategories(categoryData as CatalogCategory[])
           setManagedProducts(productData as Product[])
@@ -367,7 +646,10 @@ function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogP
       })
       .catch((error: unknown) => {
         if (!active) return
-        const errorMessage = error instanceof Error ? error.message : 'No se pudo cargar el catálogo de gestión.'
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'No se pudo cargar el catálogo de gestión.'
         setCategoryLoadError(errorMessage)
         setProductLoadError(errorMessage)
         setMessage(errorMessage)
@@ -378,13 +660,13 @@ function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogP
   }, [accessToken])
 
   function refreshAfterCategoryChange() {
-    onChanged()
+    onChanged?.()
     void refreshManagedCategories()
     void refreshManagedProducts()
   }
 
   function refreshAfterProductChange() {
-    onChanged()
+    onChanged?.()
     void refreshManagedProducts()
   }
 
@@ -399,10 +681,14 @@ function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogP
       })
       setCategoryName('')
       setCategoryDescription('')
-      setMessage('Categoría creada.')
+      setMessage('Categoría creada correctamente.')
       refreshAfterCategoryChange()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'No se pudo crear la categoría.')
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo crear la categoría.',
+      )
     } finally {
       setSaving(false)
     }
@@ -426,16 +712,20 @@ function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogP
           name: productName.trim(),
           description: productDescription.trim(),
           imageUrl,
-          categoryId: productCategory,
+          categoryId: effectiveCategoryId,
           price: Number(productPrice),
           stock: Number(productStock),
         }),
       })
       if (!response.ok) {
-        const result = await response.json() as { message?: string | string[] }
-        throw new Error(Array.isArray(result.message)
-          ? result.message.join(' ')
-          : result.message || 'No se pudo publicar el producto.')
+        const result = (await response.json()) as {
+          message?: string | string[]
+        }
+        throw new Error(
+          Array.isArray(result.message)
+            ? result.message.join(' ')
+            : result.message || 'No se pudo publicar el producto.',
+        )
       }
       setProductName('')
       setProductDescription('')
@@ -443,135 +733,375 @@ function AdminCatalogPanel({ accessToken, categories, onChanged }: AdminCatalogP
       setProductImageFile(null)
       setProductPrice('')
       setProductStock('')
-      setMessage('Producto publicado en el catálogo.')
-      onChanged()
+      setMessage('Producto publicado exitosamente en el catálogo.')
+      refreshAfterProductChange()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'No se pudo publicar el producto.')
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo publicar el producto.',
+      )
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <section className="admin-catalog-panel" aria-labelledby="admin-catalog-title">
-      <div className="admin-panel-heading">
-        <div>
-          <p className="eyebrow">Mi perfil de tienda</p>
-          <h2 id="admin-catalog-title">Gestionar mis productos y categorías</h2>
+    <div className="uv-catalog-page">
+      {/* Top Header */}
+      <header className="uv-catalog-header">
+        <button
+          type="button"
+          className="uv-header-brand"
+          onClick={onBack}
+        >
+          <img
+            src="/assets/univalle-logo.png"
+            alt="Logo Universidad del Valle"
+            className="uv-header-logo-img"
+          />
+          <span className="uv-header-title">TIENDA UNIVALLE</span>
+        </button>
+
+        <div className="uv-header-center">
+          <button
+            type="button"
+            className="uv-header-tab"
+            onClick={onBack}
+          >
+            CATÁLOGO
+          </button>
+          <button type="button" className="uv-header-tab active">
+            GESTIÓN CRUD
+          </button>
+          {isAdmin && onOpenModeration && (
+            <button
+              type="button"
+              className="uv-header-tab"
+              onClick={onOpenModeration}
+            >
+              MODERACIÓN
+            </button>
+          )}
         </div>
-        <span>Solo puedes gestionar los datos de tu tienda</span>
-      </div>
 
-      <div className="admin-panel-grid">
-        <form className="admin-form" onSubmit={createCategory}>
-          <h3>Nueva categoría</h3>
-          <label>
-            <span>Nombre</span>
-            <input
-              required
-              maxLength={80}
-              placeholder="Ej. Bebidas"
-              value={categoryName}
-              onChange={(event) => setCategoryName(event.target.value)}
-            />
-          </label>
-          <label>
-            <span>Descripción</span>
-            <input
-              maxLength={240}
-              placeholder="Descripción opcional"
-              value={categoryDescription}
-              onChange={(event) => setCategoryDescription(event.target.value)}
-            />
-          </label>
-          <button className="admin-primary-button" type="submit" disabled={saving}>
-            Crear categoría
-          </button>
-        </form>
+        <div className="uv-header-right">
+          <span className={`uv-role-pill ${isAdmin ? 'admin' : ''}`}>
+            {roleLabel} · {userName}
+          </span>
 
-        <form className="admin-form" onSubmit={createProduct}>
-          <h3>Publicar producto</h3>
-          <label>
-            <span>Nombre</span>
-            <input required maxLength={120} value={productName} onChange={(event) => setProductName(event.target.value)} />
-          </label>
-          <label>
-            <span>Descripción</span>
-            <textarea maxLength={1000} rows={3} value={productDescription} onChange={(event) => setProductDescription(event.target.value)} />
-          </label>
-          <label>
-            <span>URL de imagen (opcional)</span>
-            <input type="url" placeholder="https://…" disabled={Boolean(productImageFile)} value={productImage} onChange={(event) => setProductImage(event.target.value)} />
-          </label>
-          <label>
-            <span>O subir imagen (PNG, JPEG o WebP; máximo 5 MB)</span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={(event) => setProductImageFile(event.target.files?.[0] ?? null)}
-            />
-          </label>
-          <div className="admin-form-row">
-            <label>
-              <span>Categoría</span>
-              <select required value={productCategory} onChange={(event) => setProductCategory(event.target.value)}>
-                <option value="">Selecciona</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>{category.name}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Precio (COP)</span>
-              <input required type="number" min="1" step="1" value={productPrice} onChange={(event) => setProductPrice(event.target.value)} />
-            </label>
-            <label>
-              <span>Existencias</span>
-              <input required type="number" min="0" step="1" value={productStock} onChange={(event) => setProductStock(event.target.value)} />
-            </label>
+          {onOpenProfile && (
+            <button
+              type="button"
+              className="uv-header-icon-btn"
+              onClick={onOpenProfile}
+              aria-label="Mi perfil"
+              title="Mi perfil y direcciones"
+            >
+              <svg
+                width="19"
+                height="19"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </button>
+          )}
+
+          {onOpenCart && (
+            <button
+              type="button"
+              className="uv-header-bag-btn"
+              onClick={onOpenCart}
+              aria-label={`Ver carrito con ${bagCount} artículos`}
+              title="Abrir carrito de compras"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+              {bagCount > 0 ? (
+                <span className="uv-header-bag-count">{bagCount}</span>
+              ) : (
+                <span className="uv-header-bag-dot" />
+              )}
+            </button>
+          )}
+
+          {onLogout && (
+            <button
+              type="button"
+              className="uv-header-link"
+              onClick={onLogout}
+            >
+              CERRAR SESIÓN
+            </button>
+          )}
+        </div>
+      </header>
+
+      <main className="uv-catalog-main">
+        {/* Page Header Banner */}
+        <div className="uv-subpage-hero">
+          <div>
+            <p className="uv-subpage-eyebrow">
+              PANEL DE ADMINISTRACIÓN DE TIENDA · {roleLabel.toUpperCase()}
+            </p>
+            <h1 id="admin-catalog-title" className="uv-subpage-title">
+              Gestionar Productos y Categorías (CRUD)
+            </h1>
+            <p className="uv-subpage-desc">
+              Crea categorías, publica nuevos productos con imagen y actualiza
+              precios o existencias de tu tienda en tiempo real.
+            </p>
           </div>
-          <button className="admin-primary-button" type="submit" disabled={saving || categories.length === 0}>
-            {saving ? 'Publicando…' : 'Publicar producto'}
-          </button>
-          {categories.length === 0 && <p className="admin-hint">Crea una categoría antes de publicar productos.</p>}
-        </form>
-      </div>
+          {onBack && (
+            <button
+              type="button"
+              className="uv-admin-btn"
+              onClick={onBack}
+            >
+              ← Volver al Catálogo
+            </button>
+          )}
+        </div>
 
-      <div className="admin-category-list">
-        <h3>Gestionar categorías</h3>
-        {categoryLoadError ? (
-          <p className="admin-hint" role="alert">{categoryLoadError}</p>
-        ) : managedCategories.length === 0 ? (
-          <p className="admin-hint">Aún no hay categorías.</p>
-        ) : managedCategories.map((category) => (
-          <CategoryRow
-            key={category.id}
-            category={category}
-            accessToken={accessToken}
-            onChanged={refreshAfterCategoryChange}
-            onError={setMessage}
-          />
-        ))}
-      </div>
-      <div className="admin-product-list">
-        <h3>Mis productos</h3>
-        {productLoadError ? (
-          <p className="admin-hint" role="alert">{productLoadError}</p>
-        ) : managedProducts.length === 0 ? (
-          <p className="admin-hint">Aún no has publicado productos.</p>
-        ) : managedProducts.map((product) => (
-          <ProductRow
-            key={product.id}
-            product={product}
-            categories={managedCategories.filter((item) => item.active)}
-            accessToken={accessToken}
-            onChanged={refreshAfterProductChange}
-            onError={setMessage}
-          />
-        ))}
-      </div>
-      {message && <p className="admin-feedback" role="status">{message}</p>}
-    </section>
+        {message && (
+          <div className="uv-crud-feedback" role="status">
+            <span>{message}</span>
+            <button
+              type="button"
+              className="uv-crud-feedback-close"
+              onClick={() => setMessage('')}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Creation Forms Grid */}
+        <div className="uv-crud-forms-grid">
+          <form className="uv-crud-card" onSubmit={createCategory}>
+            <div className="uv-crud-card-header">
+              <h2>1. Crear Categoría</h2>
+              <span>Organiza tu catálogo</span>
+            </div>
+            <label className="uv-crud-field">
+              <span>Nombre de la categoría</span>
+              <input
+                required
+                maxLength={80}
+                placeholder="Ej. Ropa Institucional, Libros, Tecnología"
+                value={categoryName}
+                onChange={(event) => setCategoryName(event.target.value)}
+              />
+            </label>
+            <label className="uv-crud-field">
+              <span>Descripción (opcional)</span>
+              <input
+                maxLength={240}
+                placeholder="Breve descripción de la categoría"
+                value={categoryDescription}
+                onChange={(event) => setCategoryDescription(event.target.value)}
+              />
+            </label>
+            <button
+              className="uv-crud-btn primary full"
+              type="submit"
+              disabled={saving}
+            >
+              + Crear Categoría
+            </button>
+          </form>
+
+          <form className="uv-crud-card" onSubmit={createProduct}>
+            <div className="uv-crud-card-header">
+              <h2>2. Publicar Nuevo Producto</h2>
+              <span>Visible en el catálogo</span>
+            </div>
+            <div className="uv-crud-grid-2">
+              <label className="uv-crud-field">
+                <span>Nombre del producto</span>
+                <input
+                  required
+                  maxLength={120}
+                  placeholder="Ej. Sudadera Univalle"
+                  value={productName}
+                  onChange={(event) => setProductName(event.target.value)}
+                />
+              </label>
+              <label className="uv-crud-field">
+                <span>Categoría</span>
+                <select
+                  required
+                  value={effectiveCategoryId}
+                  onChange={(event) => setProductCategory(event.target.value)}
+                >
+                  {activeCategories.length === 0 && (
+                    <option value="">Selecciona una categoría</option>
+                  )}
+                  {activeCategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <label className="uv-crud-field">
+              <span>Descripción</span>
+              <textarea
+                maxLength={1000}
+                rows={2}
+                placeholder="Detalles, talla, material o edición..."
+                value={productDescription}
+                onChange={(event) => setProductDescription(event.target.value)}
+              />
+            </label>
+
+            <div className="uv-crud-grid-2">
+              <label className="uv-crud-field">
+                <span>Precio (COP)</span>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="45000"
+                  value={productPrice}
+                  onChange={(event) => setProductPrice(event.target.value)}
+                />
+              </label>
+              <label className="uv-crud-field">
+                <span>Existencias (Stock)</span>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="15"
+                  value={productStock}
+                  onChange={(event) => setProductStock(event.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="uv-crud-grid-2">
+              <label className="uv-crud-field">
+                <span>URL de imagen (opcional)</span>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  disabled={Boolean(productImageFile)}
+                  value={productImage}
+                  onChange={(event) => setProductImage(event.target.value)}
+                />
+              </label>
+              <label className="uv-crud-field">
+                <span>O subir imagen (PNG, JPG, WebP)</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(event) =>
+                    setProductImageFile(event.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+            </div>
+
+            <button
+              className="uv-crud-btn primary full"
+              type="submit"
+              disabled={saving || activeCategories.length === 0}
+            >
+              {saving ? 'Publicando…' : '+ Publicar Producto en Catálogo'}
+            </button>
+            {activeCategories.length === 0 && (
+              <p className="uv-crud-hint">
+                Primero crea al menos una categoría a la izquierda para poder
+                publicar productos.
+              </p>
+            )}
+          </form>
+        </div>
+
+        {/* Existing Categories List */}
+        <section className="uv-crud-section">
+          <div className="uv-crud-section-header">
+            <h2>Mis Categorías ({managedCategories.length})</h2>
+            <span>Edita el nombre o estado de tus categorías</span>
+          </div>
+          {categoryLoadError ? (
+            <p className="uv-crud-empty" role="alert">
+              {categoryLoadError}
+            </p>
+          ) : managedCategories.length === 0 ? (
+            <p className="uv-crud-empty">
+              Aún no has registrado categorías en tu tienda.
+            </p>
+          ) : (
+            <div className="uv-crud-list">
+              {managedCategories.map((category) => (
+                <CategoryRow
+                  key={category.id}
+                  category={category}
+                  accessToken={accessToken}
+                  onChanged={refreshAfterCategoryChange}
+                  onError={setMessage}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Existing Products List */}
+        <section className="uv-crud-section">
+          <div className="uv-crud-section-header">
+            <h2>Mis Productos Publicados ({managedProducts.length})</h2>
+            <span>Actualiza precios, stock, imágenes o estado</span>
+          </div>
+          {productLoadError ? (
+            <p className="uv-crud-empty" role="alert">
+              {productLoadError}
+            </p>
+          ) : managedProducts.length === 0 ? (
+            <p className="uv-crud-empty">
+              Aún no has publicado productos en tu tienda.
+            </p>
+          ) : (
+            <div className="uv-crud-list">
+              {managedProducts.map((product) => (
+                <ProductRow
+                  key={product.id}
+                  product={product}
+                  categories={activeCategories}
+                  accessToken={accessToken}
+                  onChanged={refreshAfterProductChange}
+                  onError={setMessage}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
   )
 }
 

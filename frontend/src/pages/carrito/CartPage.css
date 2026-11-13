@@ -63,18 +63,32 @@
   justify-self: start;
 }
 
-.uv-brand-logo {
+.uv-brand-logo-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 2px;
+  display: block;
+}
+
+.uv-profile-icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  background-color: #cd1f32;
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: -0.5px;
-  border-radius: 2px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #eaeaea;
+  border-radius: 50%;
+  background-color: #ffffff;
+  color: #2b2b2b;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.uv-profile-icon-btn:hover {
+  border-color: #cd1f32;
+  color: #cd1f32;
+  background-color: #fff6f7;
 }
 
 .uv-brand-text {

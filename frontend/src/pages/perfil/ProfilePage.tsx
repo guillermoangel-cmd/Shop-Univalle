@@ -6,280 +6,535 @@ import {
   getMyProfile,
   selectCustomerAddress,
   updateMyProfile,
-  DEFAULT_PROFILE_IMAGE,
-  type CustomerAddress,
+  type CurrentUser,
   type StoreProfile,
-} from '../../services/usersApi'
-import { deleteProfileImage, uploadProfileImage } from '../../services/uploadsApi'
-import '../../App.css'
+} from '../../api/usersApi'
+import '../catalogo/CatalogPage.css'
+
+const copFormatter = new Intl.NumberFormat('es-CO', {
+  style: 'currency',
+  currency: 'COP',
+  maximumFractionDigits: 0,
+})
 
 interface ProfilePageProps {
   accessToken: string
+  userName?: string
+  userEmail?: string
+  role?: string
+  bagCount?: number
   onBack: () => void
+  onOpenCart?: () => void
+  onOpenManage?: () => void
   onLogout: () => void
 }
 
-function ProfilePage({ accessToken, onBack, onLogout }: ProfilePageProps) {
-  const [profile, setProfile] = useState<StoreProfile | null>(null)
-  const [addresses, setAddresses] = useState<CustomerAddress[]>([])
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+function ProfilePage({
+  accessToken,
+  userName = 'Usuario',
+  userEmail = '',
+  role = 'ESTUDIANTE',
+  bagCount = 0,
+  onBack,
+  onOpenCart,
+  onOpenManage,
+  onLogout,
+}: ProfilePageProps) {
+  const [user, setUser] = useState<CurrentUser | null>(null)
+  const [storeProfile, setStoreProfile] = useState<StoreProfile | null>(null)
   const [nickname, setNickname] = useState('')
-  const [shopAddress, setShopAddress] = useState('')
+  const [storeAddress, setStoreAddress] = useState('')
   const [shippingCost, setShippingCost] = useState('0')
-  const [profileImage, setProfileImage] = useState(DEFAULT_PROFILE_IMAGE)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState(DEFAULT_PROFILE_IMAGE)
-  const [addressLabel, setAddressLabel] = useState('')
-  const [customerAddress, setCustomerAddress] = useState('')
-  const [addressDetails, setAddressDetails] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [label, setLabel] = useState('')
+  const [address, setAddress] = useState('')
+  const [details, setDetails] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
+  const isAdmin = role === 'ADMINISTRATIVO' || role === 'ADMINISTRADOR'
+  const roleLabel = isAdmin
+    ? 'Administrador'
+    : role === 'DOCENTE'
+      ? 'Docente'
+      : 'Estudiante'
+
   useEffect(() => {
     let active = true
-    Promise.all([getMyProfile(accessToken), getCurrentUser(accessToken)])
-      .then(([shop, user]) => {
+    Promise.all([getCurrentUser(accessToken), getMyProfile(accessToken)])
+      .then(([currentUserData, myProfileData]) => {
         if (!active) return
-        setProfile(shop)
-        setProfileImage(shop.imageUrl || DEFAULT_PROFILE_IMAGE)
-        setImagePreview(shop.imageUrl || DEFAULT_PROFILE_IMAGE)
-        setNickname(shop.nickname)
-        setShopAddress(shop.address)
-        setShippingCost(String(shop.shippingCost))
-        setAddresses(user.addresses)
-        setSelectedAddressId(user.selectedAddressId)
+        setUser(currentUserData)
+        setStoreProfile(myProfileData)
+        setNickname(myProfileData.nickname)
+        setStoreAddress(myProfileData.address || '')
+        setShippingCost(String(myProfileData.shippingCost))
+        setError('')
       })
       .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : 'No se pudo cargar el perfil.')
+        if (active) {
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : 'No se pudo cargar tu perfil.',
+          )
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false)
       })
     return () => {
       active = false
     }
   }, [accessToken])
 
-  useEffect(() => () => {
-    if (imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
-  }, [imagePreview])
-
-  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+  async function saveStore(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setBusy(true)
+    setSaving(true)
     setError('')
     setMessage('')
     try {
-      const imageUrl = imageFile
-        ? await uploadProfileImage(accessToken, imageFile)
-        : profileImage
-      const previousImageUrl = profileImage
-      const saved = await updateMyProfile(accessToken, {
+      const updatedStore = await updateMyProfile(accessToken, {
         nickname: nickname.trim(),
-        address: shopAddress.trim(),
+        address: storeAddress.trim(),
         shippingCost: Number(shippingCost),
-        imageUrl,
       })
-      setProfile(saved)
-      setProfileImage(saved.imageUrl)
-      setImagePreview(saved.imageUrl)
-      setImageFile(null)
-      if (previousImageUrl !== DEFAULT_PROFILE_IMAGE && imageUrl !== previousImageUrl) {
-        const deleted = await deleteProfileImage(accessToken, previousImageUrl)
-        if (!deleted) {
-          setMessage('La tienda se guardó; la imagen anterior se conserva porque aún está en uso.')
-          return
-        }
-      }
-      setMessage('Los datos de tu tienda se guardaron.')
+      setStoreProfile(updatedStore)
+      setMessage('Configuración de tu tienda actualizada correctamente.')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo guardar el perfil.')
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'No se pudo actualizar tu tienda.',
+      )
     } finally {
-      setBusy(false)
+      setSaving(false)
     }
   }
 
-  async function removeProfileImage() {
-    if (!profile || profileImage === DEFAULT_PROFILE_IMAGE && !imageFile) return
-    setBusy(true)
+  async function createAddress(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setSaving(true)
     setError('')
     setMessage('')
-    try {
-      const previousImageUrl = profileImage
-      const saved = await updateMyProfile(accessToken, {
-        imageUrl: DEFAULT_PROFILE_IMAGE,
-      })
-      setProfile(saved)
-      setProfileImage(DEFAULT_PROFILE_IMAGE)
-      setImagePreview(DEFAULT_PROFILE_IMAGE)
-      setImageFile(null)
-      if (previousImageUrl !== DEFAULT_PROFILE_IMAGE) {
-        const deleted = await deleteProfileImage(accessToken, previousImageUrl)
-        if (!deleted) {
-          setMessage('Se restauró la imagen predeterminada; la imagen anterior se conserva porque aún está en uso.')
-          return
-        }
-      }
-      setMessage('Se restauró la imagen predeterminada de la tienda.')
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo quitar la imagen.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function saveAddress(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setBusy(true)
-    setError('')
     try {
       const result = await addCustomerAddress(accessToken, {
-        label: addressLabel.trim(),
-        address: customerAddress.trim(),
-        details: addressDetails.trim(),
+        label: label.trim(),
+        address: address.trim(),
+        details: details.trim(),
       })
-      setAddresses(result.addresses)
-      setSelectedAddressId(result.selectedAddressId)
-      setAddressLabel('')
-      setCustomerAddress('')
-      setAddressDetails('')
-      setMessage('Dirección de entrega guardada y seleccionada.')
+      setUser((current) =>
+        current
+          ? {
+              ...current,
+              addresses: result.addresses,
+              selectedAddressId: result.selectedAddressId,
+            }
+          : current,
+      )
+      setLabel('')
+      setAddress('')
+      setDetails('')
+      setMessage('Dirección agregada a tu libreta de entregas.')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo guardar la dirección.')
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'No se pudo guardar la dirección.',
+      )
     } finally {
-      setBusy(false)
+      setSaving(false)
     }
   }
 
-  async function chooseAddress(id: string) {
-    setBusy(true)
+  async function selectAddress(addressId: string) {
+    setSaving(true)
     setError('')
+    setMessage('')
     try {
-      const result = await selectCustomerAddress(accessToken, id)
-      setAddresses(result.addresses)
-      setSelectedAddressId(result.selectedAddressId)
+      const result = await selectCustomerAddress(accessToken, addressId)
+      setUser((current) =>
+        current
+          ? {
+              ...current,
+              addresses: result.addresses,
+              selectedAddressId: result.selectedAddressId,
+            }
+          : current,
+      )
+      setMessage('Dirección predeterminada seleccionada para tus pedidos.')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo seleccionar la dirección.')
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'No se pudo seleccionar la dirección.',
+      )
     } finally {
-      setBusy(false)
+      setSaving(false)
     }
   }
 
-  async function removeAddress(id: string) {
-    setBusy(true)
+  async function deleteAddress(addressId: string) {
+    setSaving(true)
     setError('')
+    setMessage('')
     try {
-      const result = await deleteCustomerAddress(accessToken, id)
-      setAddresses(result.addresses)
-      setSelectedAddressId(result.selectedAddressId)
+      const result = await deleteCustomerAddress(accessToken, addressId)
+      setUser((current) =>
+        current
+          ? {
+              ...current,
+              addresses: result.addresses,
+              selectedAddressId: result.selectedAddressId,
+            }
+          : current,
+      )
+      setMessage('Dirección eliminada de tu perfil.')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo eliminar la dirección.')
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'No se pudo eliminar la dirección.',
+      )
     } finally {
-      setBusy(false)
+      setSaving(false)
     }
   }
+
+  const displayName = user?.name || userName
+  const displayEmail = user?.email || userEmail
 
   return (
-    <div className="store-shell">
-      <header className="profile-page-header">
-        <button className="admin-secondary-button" type="button" onClick={onBack}>
-          Volver al catálogo
+    <div className="uv-catalog-page">
+      {/* Unified Top Header */}
+      <header className="uv-catalog-header">
+        <button type="button" className="uv-header-brand" onClick={onBack}>
+          <img
+            src="/assets/univalle-logo.png"
+            alt="Logo Universidad del Valle"
+            className="uv-header-logo-img"
+          />
+          <span className="uv-header-title">TIENDA UNIVALLE</span>
         </button>
-        <button className="logout-button" type="button" onClick={onLogout}>
-          Cerrar sesión
-        </button>
-      </header>
-      <main className="profile-page">
-        <p className="eyebrow">Mi cuenta</p>
-        <h1>Tu perfil y direcciones</h1>
-        <p className="profile-intro">
-          Configura tu tienda y guarda las direcciones donde quieres recibir tus compras.
-        </p>
 
-        <form className="profile-form" onSubmit={(event) => void saveProfile(event)}>
-          <h2>Mi tienda</h2>
-          <label>
-            <span>Apodo de la tienda</span>
-            <input required maxLength={60} value={nickname} onChange={(event) => setNickname(event.target.value)} />
-          </label>
-          <div className="store-image-editor">
-            <img src={imagePreview} alt="Imagen representativa de la tienda" />
-            <label>
-              <span>Imagen de la tienda</span>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null
-                  setImageFile(file)
-                  setImagePreview(file ? URL.createObjectURL(file) : profileImage)
-                }}
-              />
-            </label>
+        <div className="uv-header-center">
+          <button type="button" className="uv-header-tab" onClick={onBack}>
+            CATÁLOGO
+          </button>
+          <button type="button" className="uv-header-tab active">
+            MI PERFIL
+          </button>
+          {onOpenManage && (
             <button
-              className="admin-secondary-button"
               type="button"
-              disabled={busy || (profileImage === DEFAULT_PROFILE_IMAGE && !imageFile)}
-              onClick={() => void removeProfileImage()}
+              className="uv-header-tab"
+              onClick={onOpenManage}
             >
-              Usar imagen predeterminada
+              GESTIÓN CRUD
+            </button>
+          )}
+        </div>
+
+        <div className="uv-header-right">
+          <span className={`uv-role-pill ${isAdmin ? 'admin' : ''}`}>
+            {roleLabel} · {displayName}
+          </span>
+
+          <button
+            type="button"
+            className="uv-header-icon-btn active"
+            aria-label="Mi perfil"
+            title="Estás en tu perfil"
+          >
+            <svg
+              width="19"
+              height="19"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </button>
+
+          {onOpenCart && (
+            <button
+              type="button"
+              className="uv-header-bag-btn"
+              onClick={onOpenCart}
+              aria-label={`Ver carrito con ${bagCount} artículos`}
+              title="Abrir carrito de compras"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+              {bagCount > 0 ? (
+                <span className="uv-header-bag-count">{bagCount}</span>
+              ) : (
+                <span className="uv-header-bag-dot" />
+              )}
+            </button>
+          )}
+
+          <button type="button" className="uv-header-link" onClick={onLogout}>
+            CERRAR SESIÓN
+          </button>
+        </div>
+      </header>
+
+      <main className="uv-catalog-main">
+        {/* Profile Hero */}
+        <div className="uv-subpage-hero">
+          <div className="uv-profile-identity">
+            <div className="uv-profile-avatar">
+              {displayName.slice(0, 1).toUpperCase()}
+            </div>
+            <div>
+              <p className="uv-subpage-eyebrow">
+                CUENTA INSTITUCIONAL · {roleLabel.toUpperCase()}
+              </p>
+              <h1 className="uv-subpage-title">{displayName}</h1>
+              <p className="uv-subpage-desc">
+                {displayEmail || 'Comunidad Universidad del Valle'} · Administra
+                los datos de tu tienda y tus direcciones de entrega.
+              </p>
+            </div>
+          </div>
+
+          <div className="uv-admin-toolbar-actions">
+            {onOpenManage && (
+              <button
+                type="button"
+                className="uv-admin-btn primary"
+                onClick={onOpenManage}
+              >
+                Ir a Gestión de Productos (CRUD)
+              </button>
+            )}
+            <button type="button" className="uv-admin-btn" onClick={onBack}>
+              ← Volver al Catálogo
             </button>
           </div>
-          <label>
-            <span>Dirección de la tienda</span>
-            <input maxLength={240} value={shopAddress} onChange={(event) => setShopAddress(event.target.value)} />
-          </label>
-          <label>
-            <span>Costo de envío a domicilio (COP)</span>
-            <input required type="number" min="0" step="1" value={shippingCost} onChange={(event) => setShippingCost(event.target.value)} />
-          </label>
-          <button className="admin-primary-button" disabled={busy || !profile} type="submit">
-            {busy ? 'Guardando…' : 'Guardar tienda'}
-          </button>
-        </form>
+        </div>
 
-        <section className="profile-addresses" aria-labelledby="customer-addresses-title">
-          <h2 id="customer-addresses-title">Mis direcciones de entrega</h2>
-          <p>La dirección seleccionada se usará al pagar cada carrito.</p>
-          {addresses.map((address) => (
-            <article className="profile-address-row" key={address.id}>
-              <label>
-                <input
-                  type="radio"
-                  name="selectedAddress"
-                  checked={selectedAddressId === address.id}
-                  onChange={() => void chooseAddress(address.id)}
-                  disabled={busy}
-                />
-                <span>
-                  <strong>{address.label}</strong>
-                  <span>{address.address}{address.details ? ` · ${address.details}` : ''}</span>
+        {loading && (
+          <div className="uv-empty-catalog">
+            <strong>Cargando información de tu perfil...</strong>
+          </div>
+        )}
+
+        {error && (
+          <div className="uv-crud-feedback error" role="alert">
+            <span>{error}</span>
+          </div>
+        )}
+
+        {message && (
+          <div className="uv-crud-feedback" role="status">
+            <span>{message}</span>
+            <button
+              type="button"
+              className="uv-crud-feedback-close"
+              onClick={() => setMessage('')}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {user && storeProfile && (
+          <div className="uv-crud-forms-grid">
+            {/* Store Profile Configuration Card */}
+            <section className="uv-crud-card" aria-labelledby="store-profile-title">
+              <div className="uv-crud-card-header">
+                <h2 id="store-profile-title">Mi Perfil de Tienda</h2>
+                <span
+                  className={`uv-status-badge ${storeProfile.active ? 'active' : 'inactive'}`}
+                >
+                  {storeProfile.active ? 'Tienda Activa' : 'Tienda Inactiva'}
                 </span>
-              </label>
-              <button className="admin-danger-button" type="button" disabled={busy} onClick={() => void removeAddress(address.id)}>
-                Eliminar
-              </button>
-            </article>
-          ))}
-          {addresses.length === 0 && <p className="profile-intro">Aún no has guardado direcciones.</p>}
+              </div>
 
-          <form className="profile-form profile-address-form" onSubmit={(event) => void saveAddress(event)}>
-            <h3>Agregar dirección</h3>
-            <label>
-              <span>Nombre corto</span>
-              <input required maxLength={40} placeholder="Casa, trabajo…" value={addressLabel} onChange={(event) => setAddressLabel(event.target.value)} />
-            </label>
-            <label>
-              <span>Dirección</span>
-              <input required maxLength={240} value={customerAddress} onChange={(event) => setCustomerAddress(event.target.value)} />
-            </label>
-            <label>
-              <span>Indicaciones adicionales</span>
-              <input maxLength={240} value={addressDetails} onChange={(event) => setAddressDetails(event.target.value)} />
-            </label>
-            <button className="admin-secondary-button" disabled={busy} type="submit">Guardar dirección</button>
-          </form>
-        </section>
-        {error && <p className="profile-feedback error" role="alert">{error}</p>}
-        {message && <p className="profile-feedback" role="status">{message}</p>}
+              <p className="uv-profile-card-note">
+                Define el nombre visible de tu tienda en el catálogo, su ubicación
+                de despacho y la tarifa base de envío para tus compradores.
+              </p>
+
+              <form className="uv-profile-form-stack" onSubmit={saveStore}>
+                <label className="uv-crud-field">
+                  <span>Apodo / Nombre comercial de tu tienda</span>
+                  <input
+                    required
+                    minLength={2}
+                    maxLength={80}
+                    placeholder="Ej. Librería Ingeniería UV"
+                    value={nickname}
+                    onChange={(event) => setNickname(event.target.value)}
+                  />
+                </label>
+
+                <label className="uv-crud-field">
+                  <span>Dirección o punto de despacho de la tienda</span>
+                  <input
+                    maxLength={180}
+                    placeholder="Ej. Campus Meléndez · Edificio E20"
+                    value={storeAddress}
+                    onChange={(event) => setStoreAddress(event.target.value)}
+                  />
+                </label>
+
+                <label className="uv-crud-field">
+                  <span>Tarifa de envío estimada (COP)</span>
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={shippingCost}
+                    onChange={(event) => setShippingCost(event.target.value)}
+                  />
+                </label>
+
+                <div className="uv-profile-shipping-preview">
+                  <span>Tarifa actual aplicada a tus compradores:</span>
+                  <strong>
+                    {copFormatter
+                      .format(Number(shippingCost || 0))
+                      .replace(/\s+/g, '')}
+                  </strong>
+                </div>
+
+                <button
+                  className="uv-crud-btn primary full"
+                  type="submit"
+                  disabled={saving}
+                >
+                  {saving ? 'Guardando…' : 'Guardar Configuración de Tienda'}
+                </button>
+              </form>
+            </section>
+
+            {/* Delivery Addresses Card */}
+            <section className="uv-crud-card" aria-labelledby="addresses-title">
+              <div className="uv-crud-card-header">
+                <h2 id="addresses-title">Mis Direcciones de Entrega</h2>
+                <span>{user.addresses.length} registradas</span>
+              </div>
+
+              <form className="uv-profile-form-stack" onSubmit={createAddress}>
+                <div className="uv-crud-grid-2">
+                  <label className="uv-crud-field">
+                    <span>Etiqueta</span>
+                    <input
+                      required
+                      maxLength={60}
+                      placeholder="Casa, Campus Meléndez, Oficina"
+                      value={label}
+                      onChange={(event) => setLabel(event.target.value)}
+                    />
+                  </label>
+                  <label className="uv-crud-field">
+                    <span>Dirección principal</span>
+                    <input
+                      required
+                      maxLength={180}
+                      placeholder="Calle 13 # 100-00"
+                      value={address}
+                      onChange={(event) => setAddress(event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <label className="uv-crud-field">
+                  <span>Detalles / Punto de referencia (opcional)</span>
+                  <input
+                    maxLength={240}
+                    placeholder="Edificio E20, oficina 204, portería peatonal..."
+                    value={details}
+                    onChange={(event) => setDetails(event.target.value)}
+                  />
+                </label>
+
+                <button
+                  className="uv-crud-btn secondary full"
+                  type="submit"
+                  disabled={saving}
+                >
+                  + Agregar Dirección de Entrega
+                </button>
+              </form>
+
+              <div className="uv-address-list">
+                {user.addresses.length === 0 ? (
+                  <p className="uv-crud-empty">
+                    Aún no tienes direcciones registradas. Agrega una para poder
+                    finalizar tus compras en el carrito.
+                  </p>
+                ) : (
+                  user.addresses.map((item) => {
+                    const selected = user.selectedAddressId === item.id
+                    return (
+                      <article
+                        className={`uv-address-card ${selected ? 'selected' : ''}`}
+                        key={item.id}
+                      >
+                        <div className="uv-address-card-info">
+                          <div className="uv-address-card-top">
+                            <strong>{item.label}</strong>
+                            {selected && (
+                              <span className="uv-status-badge active">
+                                Predeterminada
+                              </span>
+                            )}
+                          </div>
+                          <p>{item.address}</p>
+                          {item.details && <span>{item.details}</span>}
+                        </div>
+
+                        <div className="uv-crud-row-actions">
+                          {!selected && (
+                            <button
+                              className="uv-crud-btn secondary"
+                              type="button"
+                              disabled={saving}
+                              onClick={() => void selectAddress(item.id)}
+                            >
+                              Elegir
+                            </button>
+                          )}
+                          <button
+                            className="uv-crud-btn danger"
+                            type="button"
+                            disabled={saving}
+                            onClick={() => void deleteAddress(item.id)}
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </article>
+                    )
+                  })
+                )}
+              </div>
+            </section>
+          </div>
+        )}
       </main>
     </div>
   )

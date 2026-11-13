@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import CartPage from './pages/carrito/CartPage'
+import AdminCatalogPanel from './pages/catalogo/AdminCatalogPanel'
 import CatalogPage from './pages/catalogo/CatalogPage'
 import ModerationPage from './pages/catalogo/ModerationPage'
 import ProfilePage from './pages/perfil/ProfilePage'
@@ -12,8 +13,8 @@ import {
   fetchCart,
   removeCartItem,
   updateCartItemState,
-} from './services/ordersApi'
-import { listStoreProfiles, type StoreProfile } from './services/usersApi'
+} from './api/ordersApi'
+import { listStoreProfiles, type StoreProfile } from './api/usersApi'
 import type { CartState } from './types/cart'
 import type { Product } from './types/product'
 
@@ -25,7 +26,14 @@ interface Session {
   role: string
 }
 
-type ViewMode = 'login' | 'catalog' | 'shop' | 'cart' | 'profile' | 'moderation'
+type ViewMode =
+  | 'login'
+  | 'catalog'
+  | 'shop'
+  | 'cart'
+  | 'profile'
+  | 'moderation'
+  | 'manage'
 
 const SESSION_STORAGE_KEY = 'univalle_shop_session'
 const EMPTY_CART: CartState = {
@@ -71,6 +79,7 @@ function readLocation(): { view: ViewMode; profileId: string | null } {
   if (path === '/cart') return { view: 'cart', profileId: null }
   if (path === '/profile') return { view: 'profile', profileId: null }
   if (path === '/moderation') return { view: 'moderation', profileId: null }
+  if (path === '/manage') return { view: 'manage', profileId: null }
   const shop = path.match(/^\/shop\/([^/]+)$/)
   if (shop) return { view: 'shop', profileId: decodeURIComponent(shop[1]) }
   return { view: 'catalog', profileId: null }
@@ -91,18 +100,13 @@ function App() {
 
   const userId = session?.id ?? 'guest-user'
   const selectedStore = stores.find((store) => store.id === selectedStoreId)
-  const storeId = selectedStoreId ?? 'default-store'
+  const storeId = 'default-store'
   const shippingCost = selectedStore?.shippingCost ?? 8000
   const cartForSelectedStore =
-    selectedStoreId &&
-    cart.userId === userId &&
-    cart.storeProfileId === selectedStoreId
+    cart.userId === userId
       ? cart
-      : { ...EMPTY_CART, userId, storeProfileId: selectedStoreId ?? '' }
-  const displayedCartError =
-    session && view === 'cart' && !selectedStoreId
-      ? 'Selecciona una tienda para consultar su carrito.'
-      : cartError
+      : { ...EMPTY_CART, userId, storeProfileId: storeId }
+  const displayedCartError = cartError
 
   useEffect(() => {
     let active = true
@@ -119,7 +123,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!session || !selectedStoreId) {
+    if (!session) {
       return
     }
     let active = true
@@ -133,7 +137,11 @@ function App() {
       .catch((cause: unknown) => {
         if (active) {
           setCart({ ...EMPTY_CART, userId, storeProfileId: storeId })
-          setCartError(cause instanceof Error ? cause.message : 'No se pudo cargar el carrito.')
+          setCartError(
+            cause instanceof Error
+              ? cause.message
+              : 'No se pudo cargar el carrito.',
+          )
         }
       })
     return () => {
@@ -153,9 +161,11 @@ function App() {
             ? '/profile'
             : nextView === 'moderation'
               ? '/moderation'
-              : nextView === 'shop' && profileId
-                ? `/shop/${encodeURIComponent(profileId)}`
-                : '/'
+              : nextView === 'manage'
+                ? '/manage'
+                : nextView === 'shop' && profileId
+                  ? `/shop/${encodeURIComponent(profileId)}`
+                  : '/'
       if (window.location.pathname !== nextPath) {
         window.history.pushState({}, '', nextPath)
       }
@@ -206,11 +216,13 @@ function App() {
 
   const handleAddProduct = async (product: Product) => {
     if (!session) return
-    const store = stores.find((item) => item.id === product.profileId)
+    const targetStoreId = product.profileId || 'default-store'
+    const store = stores.find((item) => item.id === targetStoreId)
     const updated = await addProductToCart(
       userId,
       {
         ...product,
+        profileId: storeId,
         shippingCost: store?.shippingCost ?? shippingCost,
       },
       1,
@@ -224,7 +236,11 @@ function App() {
     try {
       setCart(await operation)
     } catch (cause) {
-      setCartError(cause instanceof Error ? cause.message : 'No se pudo actualizar el carrito.')
+      setCartError(
+        cause instanceof Error
+          ? cause.message
+          : 'No se pudo actualizar el carrito.',
+      )
     }
   }
 
@@ -241,42 +257,82 @@ function App() {
         onLogout={handleLogout}
         onUpdateQuantity={async (productId, quantity) => {
           if (!session) return
-          await runCartAction(updateCartItemState(
-            userId, productId, { quantity }, storeId, shippingCost, session.accessToken,
-          ))
+          await runCartAction(
+            updateCartItemState(
+              userId,
+              productId,
+              { quantity },
+              storeId,
+              shippingCost,
+              session.accessToken,
+            ),
+          )
         }}
         onToggleSelected={async (productId, selected) => {
           if (!session) return
-          await runCartAction(updateCartItemState(
-            userId, productId, { selected }, storeId, shippingCost, session.accessToken,
-          ))
+          await runCartAction(
+            updateCartItemState(
+              userId,
+              productId,
+              { selected },
+              storeId,
+              shippingCost,
+              session.accessToken,
+            ),
+          )
         }}
         onToggleFavorite={async (productId, favorite) => {
           if (!session) return
-          await runCartAction(updateCartItemState(
-            userId, productId, { favorite }, storeId, shippingCost, session.accessToken,
-          ))
+          await runCartAction(
+            updateCartItemState(
+              userId,
+              productId,
+              { favorite },
+              storeId,
+              shippingCost,
+              session.accessToken,
+            ),
+          )
         }}
         onRemoveItem={async (productId) => {
           if (!session) return
-          await runCartAction(removeCartItem(
-            userId, productId, storeId, shippingCost, session.accessToken,
-          ))
+          await runCartAction(
+            removeCartItem(
+              userId,
+              productId,
+              storeId,
+              shippingCost,
+              session.accessToken,
+            ),
+          )
         }}
         onClearAll={async () => {
           if (!session) return
-          await runCartAction(clearAllCart(userId, storeId, shippingCost, session.accessToken))
+          await runCartAction(
+            clearAllCart(userId, storeId, shippingCost, session.accessToken),
+          )
         }}
         onApplyPromo={async (code) => {
           if (!session) return
-          setCart(await applyCartPromoCode(
-            userId, code, storeId, shippingCost, session.accessToken,
-          ))
+          setCart(
+            await applyCartPromoCode(
+              userId,
+              code,
+              storeId,
+              shippingCost,
+              session.accessToken,
+            ),
+          )
         }}
         onCheckout={async (mode, address) => {
           if (!session) return null
           const result = await checkoutCartOrder(
-            userId, mode, storeId, shippingCost, address, session.accessToken,
+            userId,
+            mode,
+            storeId,
+            shippingCost,
+            address,
+            session.accessToken,
           )
           setCart(result.cart)
           return result.order
@@ -293,17 +349,48 @@ function App() {
     return (
       <ProfilePage
         accessToken={session.accessToken}
+        userName={session.name}
+        userEmail={session.email}
+        role={session.role}
+        bagCount={cart.summary.totalItems}
         onBack={() => navigateTo('catalog')}
+        onOpenCart={() => navigateTo('cart')}
+        onOpenManage={() => navigateTo('manage')}
         onLogout={handleLogout}
       />
     )
   }
 
-  if (view === 'moderation' && session.role === 'ADMINISTRATIVO') {
+  if (view === 'manage') {
+    return (
+      <AdminCatalogPanel
+        accessToken={session.accessToken}
+        userName={session.name}
+        role={session.role}
+        bagCount={cart.summary.totalItems}
+        onBack={() => navigateTo('catalog')}
+        onOpenProfile={() => navigateTo('profile')}
+        onOpenCart={() => navigateTo('cart')}
+        onOpenModeration={() => navigateTo('moderation')}
+        onLogout={handleLogout}
+      />
+    )
+  }
+
+  if (
+    view === 'moderation' &&
+    (session.role === 'ADMINISTRATIVO' || session.role === 'ADMINISTRADOR')
+  ) {
     return (
       <ModerationPage
         accessToken={session.accessToken}
+        userName={session.name}
+        bagCount={cart.summary.totalItems}
         onBack={() => navigateTo('catalog')}
+        onOpenProfile={() => navigateTo('profile')}
+        onOpenManage={() => navigateTo('manage')}
+        onOpenCart={() => navigateTo('cart')}
+        onLogout={handleLogout}
       />
     )
   }
@@ -313,16 +400,14 @@ function App() {
       bagCount={cart.summary.totalItems}
       onOpenCart={() => navigateTo('cart')}
       onAddProduct={handleAddProduct}
-      accessToken={session.accessToken}
       role={session.role}
       userId={session.id}
       userName={session.name}
       selectedStoreId={view === 'shop' ? selectedStoreId : null}
       onOpenProfile={() => navigateTo('profile')}
+      onOpenManage={() => navigateTo('manage')}
       onOpenStore={(profileId) =>
-        profileId
-          ? navigateTo('shop', profileId)
-          : navigateTo('catalog')
+        profileId ? navigateTo('shop', profileId) : navigateTo('catalog')
       }
       onOpenModeration={() => navigateTo('moderation')}
       onLogout={handleLogout}

@@ -4,7 +4,7 @@ import {
   getCurrentUser,
   selectCustomerAddress,
   type CustomerAddress,
-} from '../../services/usersApi'
+} from '../../api/usersApi'
 import './CartPage.css'
 
 const copFormatter = new Intl.NumberFormat('es-CO', {
@@ -173,7 +173,11 @@ function CartPage({
           onClick={onBackToCatalog}
           aria-label="Volver a Tienda Univalle"
         >
-          <span className="uv-brand-logo">UV</span>
+          <img
+            src="/assets/univalle-logo.png"
+            alt="Logo Universidad del Valle"
+            className="uv-brand-logo-img"
+          />
           <span className="uv-brand-text">TIENDA UNIVALLE</span>
         </button>
 
@@ -190,8 +194,26 @@ function CartPage({
         <div className="uv-nav-right">
           {isAuthenticated ? (
             <>
-              <button type="button" className="uv-nav-link" onClick={onOpenProfile}>
-                MI PERFIL
+              <button
+                type="button"
+                className="uv-profile-icon-btn"
+                onClick={onOpenProfile}
+                aria-label="Mi perfil"
+                title="Mi perfil y direcciones"
+              >
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
               </button>
               <button type="button" className="uv-nav-link" onClick={onLogout}>
                 CERRAR SESIÓN
@@ -242,17 +264,6 @@ function CartPage({
 
       <main className="uv-cart-container">
         {cartError && <p className="profile-feedback error" role="alert">{cartError}</p>}
-        {/* Breadcrumb */}
-        <nav className="uv-breadcrumb" aria-label="Ruta de navegación">
-          <button
-            type="button"
-            className="uv-breadcrumb-muted"
-            onClick={onBackToCatalog}
-          >
-            CATÁLOGO
-          </button>
-          <span className="uv-breadcrumb-active">CARRITO</span>
-        </nav>
 
         {/* Order Receipt Banner after checkout */}
         {lastOrder && (

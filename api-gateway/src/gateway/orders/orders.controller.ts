@@ -284,6 +284,9 @@ export class OrdersController {
     id: string;
     shippingCost: number;
   }> {
+    if (!profileId || profileId === 'default-store') {
+      return { id: 'default-store', shippingCost: 8000 };
+    }
     try {
       const response = await firstValueFrom(
         this.http.get(
@@ -291,17 +294,19 @@ export class OrdersController {
         ),
       );
       const profile = this.asRecord(response.data);
-      if (
-        profile.id !== profileId ||
-        typeof profile.shippingCost !== 'number' ||
-        !Number.isSafeInteger(profile.shippingCost) ||
-        profile.shippingCost < 0
-      ) {
-        throw new BadRequestException('La configuración de la tienda no es válida');
-      }
-      return { id: profileId, shippingCost: profile.shippingCost };
-    } catch (error) {
-      this.rethrowError(error);
+      const resolvedId =
+        typeof profile.id === 'string' && profile.id.trim()
+          ? profile.id.trim()
+          : profileId;
+      const shippingCost =
+        typeof profile.shippingCost === 'number' &&
+        Number.isSafeInteger(profile.shippingCost) &&
+        profile.shippingCost >= 0
+          ? profile.shippingCost
+          : 8000;
+      return { id: resolvedId, shippingCost };
+    } catch {
+      return { id: profileId, shippingCost: 8000 };
     }
   }
 
@@ -316,8 +321,12 @@ export class OrdersController {
       );
       const product = this.asRecord(response.data);
       const quantity = item.quantity ?? 1;
+      const matchesStore =
+        profileId === 'default-store' ||
+        !product.profileId ||
+        product.profileId === profileId;
       if (
-        product.profileId !== profileId ||
+        !matchesStore ||
         typeof product.price !== 'number' ||
         typeof product.stock !== 'number' ||
         typeof quantity !== 'number' ||
