@@ -10,6 +10,8 @@ import { GetProductUseCase } from './application/use-cases/get-product.use-case.
 import { ListProductsUseCase } from './application/use-cases/list-products.use-case.js';
 import { SetProductActiveUseCase } from './application/use-cases/set-product-active.use-case.js';
 import { UpdateProductUseCase } from './application/use-cases/update-product.use-case.js';
+import { CountImageReferencesUseCase } from './application/use-cases/count-image-references.use-case.js';
+import { CleanupProductImageUseCase } from './application/use-cases/cleanup-product-image.use-case.js';
 import {
 	PRODUCT_REPOSITORY,
 	type ProductRepository,
@@ -107,6 +109,18 @@ import {
 			useFactory: (products: ProductRepository, categories: CategoryRepository) =>
 				new UpdateProductUseCase(products, categories),
 			inject: [PRODUCT_REPOSITORY, CATEGORY_REPOSITORY],
+		},
+		{
+			provide: CountImageReferencesUseCase,
+			useFactory: (repository: ProductRepository) =>
+				new CountImageReferencesUseCase(repository),
+			inject: [PRODUCT_REPOSITORY],
+		},
+		{
+			provide: CleanupProductImageUseCase,
+			useFactory: (repository: ProductRepository) =>
+				new CleanupProductImageUseCase(repository),
+			inject: [PRODUCT_REPOSITORY],
 		},
 	],
 })

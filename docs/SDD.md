@@ -48,4 +48,4 @@ La aplicación web esta desarrollada como proyecto académico. Su arquitectura e
 
 ## Seguimiento SDD / Jira
 
-Mantener historias y criterios de aceptación en el tablero Jira del curso. Registrar aquí el enlace al tablero cuando el equipo lo tenga; no hay una URL Jira configurada en el repositorio todavía. Los avances semanales deben enlazar PR/commit con la historia correspondiente.
+Mantener historias y criterios de aceptación en el tablero Jira del curso. **Registrar aquí el enlace al tablero cuando lo tengamos**; no hay una URL Jira configurada en el repositorio todavía. Los avances semanales deben enlazar PR/commit con la historia correspondiente.

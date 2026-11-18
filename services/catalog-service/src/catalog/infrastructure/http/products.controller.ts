@@ -4,7 +4,6 @@ import {
 	Controller,
 	Delete,
 	Get,
-	Inject,
 	NotFoundException,
 	Param,
 	Patch,
@@ -14,6 +13,8 @@ import {
 	UseGuards,
 } from '@nestjs/common';
 import { CreateProductUseCase } from '../../application/use-cases/create-product.use-case.js';
+import { CountImageReferencesUseCase } from '../../application/use-cases/count-image-references.use-case.js';
+import { CleanupProductImageUseCase } from '../../application/use-cases/cleanup-product-image.use-case.js';
 import { GetProductUseCase } from '../../application/use-cases/get-product.use-case.js';
 import { ListProductsUseCase } from '../../application/use-cases/list-products.use-case.js';
 import { SetProductActiveUseCase } from '../../application/use-cases/set-product-active.use-case.js';
@@ -23,7 +24,6 @@ import {
 	type ProductData,
 } from '../../domain/entities/product.entity.js';
 import { CategoryNotFoundError } from '../../application/errors/category.errors.js';
-import { PRODUCT_REPOSITORY, type ProductRepository } from '../../domain/ports/product.repository.js';
 import type { Request } from 'express';
 import { AdminAuthGuard, CatalogAuthGuard } from './admin-auth.guard.js';
 
@@ -39,8 +39,8 @@ export class ProductsController {
 		private readonly listProducts: ListProductsUseCase,
 		private readonly setProductActive: SetProductActiveUseCase,
 		private readonly updateProduct: UpdateProductUseCase,
-		@Inject(PRODUCT_REPOSITORY)
-		private readonly productRepository: ProductRepository,
+		private readonly countImageReferencesUseCase: CountImageReferencesUseCase,
+		private readonly cleanupProductImageUseCase: CleanupProductImageUseCase,
 	) {}
 
 	@Get()
@@ -68,7 +68,9 @@ export class ProductsController {
 		@Query('imageUrl') imageUrl: string,
 	) {
 		if (!imageUrl) throw new BadRequestException('La imagen no es válida');
-		return { references: await this.productRepository.countImageReferences(imageUrl) };
+		return {
+			references: await this.countImageReferencesUseCase.execute(imageUrl),
+		};
 	}
 
 	@Get(':id')
@@ -174,15 +176,14 @@ export class ProductsController {
 		if (typeof input.imageUrl !== 'string' || !input.imageUrl) {
 			throw new BadRequestException('La imagen anterior no es válida');
 		}
-		const product = await this.getProduct.execute(id);
-		if (!product || product.profileId !== request.user.sub) {
+		const safeToDelete = await this.cleanupProductImageUseCase.execute(
+			id,
+			input.imageUrl,
+			request.user.sub,
+		);
+		if (safeToDelete === null) {
 			throw new NotFoundException('Product not found');
 		}
-		if (product.imageUrl === input.imageUrl) return { safeToDelete: false };
-		const references = await this.productRepository.countImageReferences(
-			input.imageUrl,
-			id,
-		);
-		return { safeToDelete: references === 0 };
+		return { safeToDelete };
 	}
 }
