@@ -20,21 +20,21 @@ describe('UpdateProductUseCase', () => {
 	);
 	const nextCategory = new CategoryEntity('next-category', 'Frutas', '', true, 'seller-id');
 	const categories: CategoryRepository = {
-		findAll: jest.fn(),
-		findById: jest.fn(async () => nextCategory),
-		findByName: jest.fn(),
-		save: jest.fn(),
-		update: jest.fn(),
+		findAll: jest.fn<CategoryRepository['findAll']>(async () => []),
+		findById: jest.fn<CategoryRepository['findById']>(async () => nextCategory),
+		findByName: jest.fn<CategoryRepository['findByName']>(async () => null),
+		save: jest.fn<CategoryRepository['save']>(async (value) => value),
+		update: jest.fn<CategoryRepository['update']>(async () => null),
 	};
 	const products: ProductRepository = {
-		findAll: jest.fn(),
-		findById: jest.fn(async () => existing),
-		findByCategoryId: jest.fn(),
-		countImageReferences: jest.fn(),
-		updateCategoryName: jest.fn(),
-		save: jest.fn(),
-		update: jest.fn(async (product) => product),
-		setActive: jest.fn(),
+		findAll: jest.fn<ProductRepository['findAll']>(async () => []),
+		findById: jest.fn<ProductRepository['findById']>(async () => existing),
+		findByCategoryId: jest.fn<ProductRepository['findByCategoryId']>(async () => 0),
+		countImageReferences: jest.fn<ProductRepository['countImageReferences']>(async () => 0),
+		updateCategoryName: jest.fn<ProductRepository['updateCategoryName']>(async () => undefined),
+		save: jest.fn<ProductRepository['save']>(async (value) => value),
+		update: jest.fn<ProductRepository['update']>(async (product) => product),
+		setActive: jest.fn<ProductRepository['setActive']>(async () => null),
 	};
 	const useCase = new UpdateProductUseCase(products, categories);
 

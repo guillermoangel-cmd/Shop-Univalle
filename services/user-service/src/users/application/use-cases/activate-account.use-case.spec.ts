@@ -9,11 +9,11 @@ describe('ActivateAccountUseCase', () => {
 		findAuthorizedEmail: jest.fn(async () => ({
 			email: 'estudiante.demo@correounivalle.edu.co',
 			name: 'Estudiante Demo',
-			role: 'ESTUDIANTE',
+			role: 'ESTUDIANTE' as const,
 			active: true,
 		})),
 		findUserByEmail: jest.fn(async () => null),
-		save: jest.fn(async (user) => user),
+		save: jest.fn<AuthenticationRepository['save']>(async (user) => user),
 	};
 	const passwordHasher: PasswordHasher = {
 		hash: jest.fn(async () => '$2b$12$hashed'),

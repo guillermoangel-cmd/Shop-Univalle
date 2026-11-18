@@ -19,7 +19,7 @@ describe('LoginUseCase', () => {
 	const repository: AuthenticationRepository = {
 		findAuthorizedEmail: jest.fn(async () => null),
 		findUserByEmail: jest.fn(async () => user),
-		save: jest.fn(async (account) => account),
+		save: jest.fn(async (account: UserEntity): Promise<UserEntity> => account),
 	};
 	const passwordVerifier: PasswordVerifier = {
 		verify: jest.fn(async () => true),

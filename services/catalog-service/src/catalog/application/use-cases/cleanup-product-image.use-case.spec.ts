@@ -17,14 +17,14 @@ describe('CleanupProductImageUseCase', () => {
 	);
 
 	const repository: ProductRepository = {
-		findAll: jest.fn(),
-		findById: jest.fn(async () => product),
-		findByCategoryId: jest.fn(),
-		countImageReferences: jest.fn(async () => 0),
-		updateCategoryName: jest.fn(),
-		save: jest.fn(),
-		update: jest.fn(),
-		setActive: jest.fn(),
+		findAll: jest.fn<ProductRepository['findAll']>(async () => []),
+		findById: jest.fn<ProductRepository['findById']>(async () => product),
+		findByCategoryId: jest.fn<ProductRepository['findByCategoryId']>(async () => 0),
+		countImageReferences: jest.fn<ProductRepository['countImageReferences']>(async () => 0),
+		updateCategoryName: jest.fn<ProductRepository['updateCategoryName']>(async () => undefined),
+		save: jest.fn<ProductRepository['save']>(async () => product),
+		update: jest.fn<ProductRepository['update']>(async () => product),
+		setActive: jest.fn<ProductRepository['setActive']>(async () => product),
 	};
 
 	const useCase = new CleanupProductImageUseCase(repository);
