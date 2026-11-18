@@ -9,20 +9,21 @@ import { CreateProductUseCase } from './create-product.use-case.js';
 describe('CreateProductUseCase', () => {
 	const category = new CategoryEntity('category-id', 'Bebidas', '', true, 'seller-id');
 	const categories: CategoryRepository = {
-		findAll: jest.fn(),
-		findById: jest.fn(async () => category),
-		findByName: jest.fn(),
-		save: jest.fn(),
-		update: jest.fn(),
+		findAll: jest.fn<CategoryRepository['findAll']>(),
+		findById: jest.fn<CategoryRepository['findById']>(async () => category),
+		findByName: jest.fn<CategoryRepository['findByName']>(),
+		save: jest.fn<CategoryRepository['save']>(),
+		update: jest.fn<CategoryRepository['update']>(),
 	};
 	const products: ProductRepository = {
-		findAll: jest.fn(),
-		findById: jest.fn(),
-		findByCategoryId: jest.fn(),
-		countImageReferences: jest.fn(),
-		updateCategoryName: jest.fn(),
-		save: jest.fn(async (product) => product),
-		setActive: jest.fn(),
+		findAll: jest.fn<ProductRepository['findAll']>(),
+		findById: jest.fn<ProductRepository['findById']>(),
+		findByCategoryId: jest.fn<ProductRepository['findByCategoryId']>(),
+		countImageReferences: jest.fn<ProductRepository['countImageReferences']>(),
+		updateCategoryName: jest.fn<ProductRepository['updateCategoryName']>(),
+		update: jest.fn<ProductRepository['update']>(),
+		save: jest.fn<ProductRepository['save']>(async (product) => product),
+		setActive: jest.fn<ProductRepository['setActive']>(),
 	};
 	const useCase = new CreateProductUseCase(products, categories);
 

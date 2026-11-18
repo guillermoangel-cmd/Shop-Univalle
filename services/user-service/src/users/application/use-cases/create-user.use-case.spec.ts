@@ -8,7 +8,7 @@ import { CreateUserUseCase } from './create-user.use-case.js';
 describe('CreateUserUseCase', () => {
 	const savedUsers: UserEntity[] = [];
 	const repository: UserRepository = {
-		save: jest.fn(async (user) => {
+		save: jest.fn(async (user: UserEntity) => {
 			savedUsers.push(user);
 			return user;
 		}),
