@@ -65,4 +65,4 @@ En local el servicio escucha en `3003` por defecto; Compose establece `PORT=3000
 
 - `domain`: entidades, roles y puertos de repositorio/seguridad.
 - `application`: activación e inicio de sesión.
-- `infraestructure`: controladores REST, Mongo, bcrypt y JWT.
+- `infrastructure`: controladores REST, Mongo, bcrypt y JWT.
