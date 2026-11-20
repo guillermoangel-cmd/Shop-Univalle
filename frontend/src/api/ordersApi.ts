@@ -175,3 +175,15 @@ export async function checkoutCartOrder(
     }),
   )
 }
+
+export function fetchCustomerOrders(
+  userId: string,
+  accessToken: string,
+): Promise<OrderReceipt[]> {
+  const params = new URLSearchParams({ userId })
+  return requestJson(
+    `/api/orders?${params.toString()}`,
+    accessToken,
+    'No se pudo cargar el historial de pedidos.',
+  )
+}

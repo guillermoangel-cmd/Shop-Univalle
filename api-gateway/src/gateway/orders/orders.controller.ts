@@ -43,12 +43,17 @@ export class OrdersController {
   ) {
     try {
       const profile = await this.getStoreProfile(storeProfileId);
+      const parsedShipping = Number(shippingCost);
+      const effectiveShipping =
+        Number.isFinite(parsedShipping) && parsedShipping >= 0
+          ? Math.round(parsedShipping)
+          : profile.shippingCost;
       const response = await firstValueFrom(
         this.http.get(`${this.ordersServiceUrl}/cart`, {
           params: {
             userId,
             storeProfileId: profile.id,
-            shippingCost: profile.shippingCost,
+            shippingCost: effectiveShipping,
           },
           headers: authorization ? { authorization } : undefined,
         }),
@@ -68,12 +73,17 @@ export class OrdersController {
       const input = this.asRecord(body);
       const profile = await this.getStoreProfile(this.readString(input.storeProfileId, 'storeProfileId'));
       const item = await this.getProductForStore(input.item, profile.id);
+      const customShipping = Number(input.shippingCost);
+      const effectiveShipping =
+        Number.isFinite(customShipping) && customShipping >= 0
+          ? Math.round(customShipping)
+          : profile.shippingCost;
       const response = await firstValueFrom(
         this.http.post(`${this.ordersServiceUrl}/cart/items`, {
           ...input,
           item,
           storeProfileId: profile.id,
-          shippingCost: profile.shippingCost,
+          shippingCost: effectiveShipping,
         }, {
           headers: authorization ? { authorization } : undefined,
         }),
@@ -94,13 +104,18 @@ export class OrdersController {
       const input = this.asRecord(body);
       const profileId = this.readString(input.storeProfileId, 'storeProfileId');
       const profile = await this.getStoreProfile(profileId);
+      const customShipping = Number(input.shippingCost);
+      const effectiveShipping =
+        Number.isFinite(customShipping) && customShipping >= 0
+          ? Math.round(customShipping)
+          : profile.shippingCost;
       const response = await firstValueFrom(
         this.http.patch(
           `${this.ordersServiceUrl}/cart/items/${encodeURIComponent(productId)}`,
           {
             ...input,
             storeProfileId: profile.id,
-            shippingCost: profile.shippingCost,
+            shippingCost: effectiveShipping,
           },
           { headers: authorization ? { authorization } : undefined },
         ),
@@ -165,11 +180,16 @@ export class OrdersController {
       const profile = await this.getStoreProfile(
         this.readString(input.storeProfileId, 'storeProfileId'),
       );
+      const customShipping = Number(input.shippingCost);
+      const effectiveShipping =
+        Number.isFinite(customShipping) && customShipping >= 0
+          ? Math.round(customShipping)
+          : profile.shippingCost;
       const response = await firstValueFrom(
         this.http.post(`${this.ordersServiceUrl}/cart/promo`, {
           ...input,
           storeProfileId: profile.id,
-          shippingCost: profile.shippingCost,
+          shippingCost: effectiveShipping,
         }, {
           headers: authorization ? { authorization } : undefined,
         }),
@@ -190,29 +210,40 @@ export class OrdersController {
       const profile = await this.getStoreProfile(
         this.readString(input.storeProfileId, 'storeProfileId'),
       );
-      const authResponse = await firstValueFrom(
-        this.http.get(`${this.userServiceUrl}/users/me`, {
-          headers: authorization ? { authorization } : undefined,
-        }),
-      );
-      const user = this.asRecord(authResponse.data);
-      const addressList = Array.isArray(user.addresses) ? user.addresses : [];
-      const address = addressList
-        .map((item) => this.asRecord(item))
-        .find((item) => item.id === user.selectedAddressId);
-      if (!address || typeof address.address !== 'string') {
-        throw new BadRequestException('Agrega y selecciona una dirección de entrega antes de pagar');
+      const customShipping = Number(input.shippingCost);
+      const effectiveShipping =
+        Number.isFinite(customShipping) && customShipping >= 0
+          ? Math.round(customShipping)
+          : profile.shippingCost;
+      let deliveryAddress =
+        typeof input.deliveryAddress === 'string' && input.deliveryAddress.trim()
+          ? input.deliveryAddress.trim()
+          : '';
+      if (!deliveryAddress) {
+        const authResponse = await firstValueFrom(
+          this.http.get(`${this.userServiceUrl}/users/me`, {
+            headers: authorization ? { authorization } : undefined,
+          }),
+        );
+        const user = this.asRecord(authResponse.data);
+        const addressList = Array.isArray(user.addresses) ? user.addresses : [];
+        const address = addressList
+          .map((item) => this.asRecord(item))
+          .find((item) => item.id === user.selectedAddressId);
+        if (!address || typeof address.address !== 'string') {
+          throw new BadRequestException('Agrega y selecciona una dirección de entrega antes de pagar');
+        }
+        deliveryAddress = [
+          address.label,
+          address.address,
+          address.details,
+        ].filter((part) => typeof part === 'string' && part).join(' · ');
       }
-      const deliveryAddress = [
-        address.label,
-        address.address,
-        address.details,
-      ].filter((part) => typeof part === 'string' && part).join(' · ');
       const response = await firstValueFrom(
         this.http.post(`${this.ordersServiceUrl}/orders/checkout`, {
           ...input,
           storeProfileId: profile.id,
-          shippingCost: profile.shippingCost,
+          shippingCost: effectiveShipping,
           deliveryAddress,
         }, {
           headers: authorization ? { authorization } : undefined,
@@ -336,11 +367,17 @@ export class OrdersController {
       ) {
         throw new BadRequestException('El producto no pertenece a esta tienda o no tiene existencias suficientes');
       }
+      const requestedDescription =
+        typeof item.description === 'string' && item.description.trim()
+          ? item.description.trim()
+          : typeof product.description === 'string'
+            ? product.description
+            : '';
       return {
         productId,
         name: this.readString(product.name, 'name'),
         category: this.readString(product.category, 'category'),
-        description: typeof product.description === 'string' ? product.description : '',
+        description: requestedDescription,
         imageUrl: typeof product.imageUrl === 'string' ? product.imageUrl : '',
         price: product.price,
         quantity,

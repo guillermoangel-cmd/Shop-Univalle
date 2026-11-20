@@ -20,6 +20,7 @@ interface ModerationPageProps {
   bagCount?: number
   onBack: () => void
   onOpenProfile?: () => void
+  onOpenHistory?: () => void
   onOpenManage?: () => void
   onOpenCart?: () => void
   onLogout?: () => void
@@ -59,6 +60,7 @@ function ModerationPage({
   bagCount = 0,
   onBack,
   onOpenProfile,
+  onOpenHistory,
   onOpenManage,
   onOpenCart,
   onLogout,
@@ -247,13 +249,31 @@ function ModerationPage({
           <button type="button" className="uv-header-tab" onClick={onBack}>
             CATÁLOGO
           </button>
+          {onOpenProfile && (
+            <button
+              type="button"
+              className="uv-header-tab"
+              onClick={onOpenProfile}
+            >
+              MI PERFIL
+            </button>
+          )}
+          {onOpenHistory && (
+            <button
+              type="button"
+              className="uv-header-tab"
+              onClick={onOpenHistory}
+            >
+              HISTORIAL
+            </button>
+          )}
           {onOpenManage && (
             <button
               type="button"
               className="uv-header-tab"
               onClick={onOpenManage}
             >
-              GESTIÓN CRUD
+              GESTIÓN
             </button>
           )}
           <button type="button" className="uv-header-tab active">

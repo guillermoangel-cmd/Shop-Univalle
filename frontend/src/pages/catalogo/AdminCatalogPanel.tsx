@@ -1,6 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { deleteProductImage, uploadProductImage } from '../../api/uploadsApi'
 import { DEFAULT_PRODUCT_IMAGE, type Product } from '../../types/product'
+import {
+  ACCESSORY_SIZES,
+  CLOTHING_SIZES,
+  buildProductDescription,
+  detectCategoryTemplate,
+  parseProductMetadata,
+} from '../../utils/productAttributes'
 import './CatalogPage.css'
 
 export interface CatalogCategory {
@@ -18,6 +25,7 @@ interface AdminCatalogPanelProps {
   bagCount?: number
   onBack?: () => void
   onOpenProfile?: () => void
+  onOpenHistory?: () => void
   onOpenCart?: () => void
   onOpenModeration?: () => void
   onLogout?: () => void
@@ -224,8 +232,21 @@ function ProductRow({
   onChanged: () => void
   onError: (message: string) => void
 }) {
+  const initialParsed = parseProductMetadata(
+    product.description,
+    product.category,
+  )
   const [name, setName] = useState(product.name)
-  const [description, setDescription] = useState(product.description)
+  const [description, setDescription] = useState(initialParsed.cleanDescription)
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(
+    initialParsed.sizes,
+  )
+  const [attrPrimary, setAttrPrimary] = useState(
+    initialParsed.specs[0]?.value ?? '',
+  )
+  const [attrSecondary, setAttrSecondary] = useState(
+    initialParsed.specs[1]?.value ?? '',
+  )
   const [imageUrl, setImageUrl] = useState(
     product.imageUrl || DEFAULT_PRODUCT_IMAGE,
   )
@@ -236,14 +257,28 @@ function ProductRow({
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    const parsed = parseProductMetadata(product.description, product.category)
     setName(product.name)
-    setDescription(product.description)
+    setDescription(parsed.cleanDescription)
+    setSelectedSizes(parsed.sizes)
+    setAttrPrimary(parsed.specs[0]?.value ?? '')
+    setAttrSecondary(parsed.specs[1]?.value ?? '')
     setImageUrl(product.imageUrl || DEFAULT_PRODUCT_IMAGE)
     setImageFile(null)
     setCategoryId(product.categoryId ?? '')
     setPrice(String(product.price))
     setStock(String(product.stock))
   }, [product])
+
+  const currentCatName =
+    categories.find((c) => c.id === categoryId)?.name || product.category
+  const template = detectCategoryTemplate(currentCatName)
+
+  const toggleSize = (size: string) => {
+    setSelectedSizes((prev) =>
+      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size],
+    )
+  }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -253,13 +288,41 @@ function ProductRow({
       const savedImageUrl = imageFile
         ? await uploadProductImage(accessToken, imageFile)
         : imageUrl.trim() || DEFAULT_PRODUCT_IMAGE
+
+      const attributes: Record<string, string> = {}
+      if (template === 'clothing') {
+        if (attrPrimary.trim()) attributes['Material'] = attrPrimary.trim()
+        if (attrSecondary.trim()) attributes['Color'] = attrSecondary.trim()
+      } else if (template === 'books') {
+        if (attrPrimary.trim()) attributes['Autor/Editorial'] = attrPrimary.trim()
+        if (attrSecondary.trim()) attributes['Edición/Estado'] = attrSecondary.trim()
+      } else if (template === 'tech') {
+        if (attrPrimary.trim()) attributes['Marca/Modelo'] = attrPrimary.trim()
+        if (attrSecondary.trim()) attributes['Garantía/Detalle'] = attrSecondary.trim()
+      } else {
+        if (attrPrimary.trim()) attributes['Material/Detalle'] = attrPrimary.trim()
+        if (attrSecondary.trim()) attributes['Estado'] = attrSecondary.trim()
+      }
+
+      const allowedForEdit =
+        template === 'clothing'
+          ? CLOTHING_SIZES
+          : template === 'accessories'
+            ? ACCESSORY_SIZES
+            : []
+
+      const fullDescription = buildProductDescription(description, {
+        sizes: selectedSizes.filter((s) => allowedForEdit.includes(s)),
+        attributes,
+      })
+
       await adminRequest(
         `/api/products/${encodeURIComponent(product.id)}`,
         accessToken,
         'PATCH',
         {
           name: name.trim(),
-          description: description.trim(),
+          description: fullDescription,
           imageUrl: savedImageUrl,
           categoryId,
           price: Number(price),
@@ -362,7 +425,10 @@ function ProductRow({
   }
 
   return (
-    <form className="uv-crud-product-card" onSubmit={(event) => void save(event)}>
+    <form
+      className="uv-crud-product-card"
+      onSubmit={(event) => void save(event)}
+    >
       <div className="uv-crud-product-top">
         <img
           src={imageUrl}
@@ -408,14 +474,82 @@ function ProductRow({
           </div>
 
           <label className="uv-crud-field">
-            <span>Descripción</span>
+            <span>Descripción principal</span>
             <input
-              maxLength={1000}
+              maxLength={800}
               disabled={!product.active || saving}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />
           </label>
+
+          {/* Dynamic Category Options in Edit Row */}
+          {(template === 'clothing' || template === 'accessories') && (
+            <div className="uv-crud-field">
+              <span>
+                {template === 'clothing'
+                  ? 'Tallas disponibles (clic para activar/desactivar)'
+                  : 'Presentación / Medida disponible'}
+              </span>
+              <div className="uv-size-chips-row">
+                {(template === 'clothing' ? CLOTHING_SIZES : ACCESSORY_SIZES).map(
+                  (sz) => {
+                    const active = selectedSizes.includes(sz)
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        disabled={!product.active || saving}
+                        className={`uv-size-chip ${active ? 'active' : ''}`}
+                        onClick={() => toggleSize(sz)}
+                      >
+                        {sz}
+                      </button>
+                    )
+                  },
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="uv-crud-grid-2">
+            <label className="uv-crud-field">
+              <span>
+                {template === 'clothing'
+                  ? 'Material / Tela'
+                  : template === 'books'
+                    ? 'Autor / Editorial'
+                    : template === 'tech'
+                      ? 'Marca / Modelo'
+                      : 'Material / Especificación'}
+              </span>
+              <input
+                maxLength={120}
+                disabled={!product.active || saving}
+                value={attrPrimary}
+                placeholder="Opcional"
+                onChange={(e) => setAttrPrimary(e.target.value)}
+              />
+            </label>
+            <label className="uv-crud-field">
+              <span>
+                {template === 'clothing'
+                  ? 'Color / Estilo'
+                  : template === 'books'
+                    ? 'Edición / Estado'
+                    : template === 'tech'
+                      ? 'Garantía / Condición'
+                      : 'Condición / Detalle'}
+              </span>
+              <input
+                maxLength={120}
+                disabled={!product.active || saving}
+                value={attrSecondary}
+                placeholder="Opcional"
+                onChange={(e) => setAttrSecondary(e.target.value)}
+              />
+            </label>
+          </div>
 
           <div className="uv-crud-grid-4">
             <label className="uv-crud-field">
@@ -527,6 +661,7 @@ function AdminCatalogPanel({
   bagCount = 0,
   onBack,
   onOpenProfile,
+  onOpenHistory,
   onOpenCart,
   onOpenModeration,
   onLogout,
@@ -541,6 +676,12 @@ function AdminCatalogPanel({
   const [productCategory, setProductCategory] = useState('')
   const [productPrice, setProductPrice] = useState('')
   const [productStock, setProductStock] = useState('')
+
+  // Dynamic category-dependent fields for creation
+  const [newSizes, setNewSizes] = useState<string[]>([])
+  const [newAttrPrimary, setNewAttrPrimary] = useState('')
+  const [newAttrSecondary, setNewAttrSecondary] = useState('')
+
   const [managedCategories, setManagedCategories] = useState<CatalogCategory[]>(
     [],
   )
@@ -564,6 +705,17 @@ function AdminCatalogPanel({
     productCategory && activeCategories.some((c) => c.id === productCategory)
       ? productCategory
       : activeCategories[0]?.id ?? ''
+
+  const selectedCategoryObj = activeCategories.find(
+    (c) => c.id === effectiveCategoryId,
+  )
+  const createTemplate = detectCategoryTemplate(selectedCategoryObj?.name ?? '')
+
+  const handleToggleNewSize = (size: string) => {
+    setNewSizes((prev) =>
+      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size],
+    )
+  }
 
   async function refreshManagedCategories() {
     try {
@@ -702,6 +854,39 @@ function AdminCatalogPanel({
       const imageUrl = productImageFile
         ? await uploadProductImage(accessToken, productImageFile)
         : productImage.trim() || DEFAULT_PRODUCT_IMAGE
+
+      const attributes: Record<string, string> = {}
+      if (createTemplate === 'clothing') {
+        if (newAttrPrimary.trim()) attributes['Material'] = newAttrPrimary.trim()
+        if (newAttrSecondary.trim()) attributes['Color'] = newAttrSecondary.trim()
+      } else if (createTemplate === 'books') {
+        if (newAttrPrimary.trim())
+          attributes['Autor/Editorial'] = newAttrPrimary.trim()
+        if (newAttrSecondary.trim())
+          attributes['Edición/Estado'] = newAttrSecondary.trim()
+      } else if (createTemplate === 'tech') {
+        if (newAttrPrimary.trim())
+          attributes['Marca/Modelo'] = newAttrPrimary.trim()
+        if (newAttrSecondary.trim())
+          attributes['Garantía/Detalle'] = newAttrSecondary.trim()
+      } else {
+        if (newAttrPrimary.trim())
+          attributes['Material/Detalle'] = newAttrPrimary.trim()
+        if (newAttrSecondary.trim()) attributes['Estado'] = newAttrSecondary.trim()
+      }
+
+      const allowedForCreate =
+        createTemplate === 'clothing'
+          ? CLOTHING_SIZES
+          : createTemplate === 'accessories'
+            ? ACCESSORY_SIZES
+            : []
+
+      const fullDescription = buildProductDescription(productDescription, {
+        sizes: newSizes.filter((s) => allowedForCreate.includes(s)),
+        attributes,
+      })
+
       const response = await fetch('/api/products', {
         method: 'POST',
         headers: {
@@ -710,7 +895,7 @@ function AdminCatalogPanel({
         },
         body: JSON.stringify({
           name: productName.trim(),
-          description: productDescription.trim(),
+          description: fullDescription,
           imageUrl,
           categoryId: effectiveCategoryId,
           price: Number(productPrice),
@@ -733,6 +918,8 @@ function AdminCatalogPanel({
       setProductImageFile(null)
       setProductPrice('')
       setProductStock('')
+      setNewAttrPrimary('')
+      setNewAttrSecondary('')
       setMessage('Producto publicado exitosamente en el catálogo.')
       refreshAfterProductChange()
     } catch (error) {
@@ -750,11 +937,7 @@ function AdminCatalogPanel({
     <div className="uv-catalog-page">
       {/* Top Header */}
       <header className="uv-catalog-header">
-        <button
-          type="button"
-          className="uv-header-brand"
-          onClick={onBack}
-        >
+        <button type="button" className="uv-header-brand" onClick={onBack}>
           <img
             src="/assets/univalle-logo.png"
             alt="Logo Universidad del Valle"
@@ -764,15 +947,29 @@ function AdminCatalogPanel({
         </button>
 
         <div className="uv-header-center">
-          <button
-            type="button"
-            className="uv-header-tab"
-            onClick={onBack}
-          >
+          <button type="button" className="uv-header-tab" onClick={onBack}>
             CATÁLOGO
           </button>
+          {onOpenProfile && (
+            <button
+              type="button"
+              className="uv-header-tab"
+              onClick={onOpenProfile}
+            >
+              MI PERFIL
+            </button>
+          )}
+          {onOpenHistory && (
+            <button
+              type="button"
+              className="uv-header-tab"
+              onClick={onOpenHistory}
+            >
+              HISTORIAL
+            </button>
+          )}
           <button type="button" className="uv-header-tab active">
-            GESTIÓN CRUD
+            GESTIÓN
           </button>
           {isAdmin && onOpenModeration && (
             <button
@@ -845,11 +1042,7 @@ function AdminCatalogPanel({
           )}
 
           {onLogout && (
-            <button
-              type="button"
-              className="uv-header-link"
-              onClick={onLogout}
-            >
+            <button type="button" className="uv-header-link" onClick={onLogout}>
               CERRAR SESIÓN
             </button>
           )}
@@ -864,22 +1057,14 @@ function AdminCatalogPanel({
               PANEL DE ADMINISTRACIÓN DE TIENDA · {roleLabel.toUpperCase()}
             </p>
             <h1 id="admin-catalog-title" className="uv-subpage-title">
-              Gestionar Productos y Categorías (CRUD)
+              Gestión de Productos y Categorías
             </h1>
             <p className="uv-subpage-desc">
-              Crea categorías, publica nuevos productos con imagen y actualiza
-              precios o existencias de tu tienda en tiempo real.
+              Crea categorías y publica productos con atributos dinámicos según
+              su tipo (tallas para ropa, autor/editorial para libros, marca/modelo
+              para tecnología o medidas para accesorios).
             </p>
           </div>
-          {onBack && (
-            <button
-              type="button"
-              className="uv-admin-btn"
-              onClick={onBack}
-            >
-              ← Volver al Catálogo
-            </button>
-          )}
         </div>
 
         {message && (
@@ -900,14 +1085,14 @@ function AdminCatalogPanel({
           <form className="uv-crud-card" onSubmit={createCategory}>
             <div className="uv-crud-card-header">
               <h2>1. Crear Categoría</h2>
-              <span>Organiza tu catálogo</span>
+              <span>Activa campos dinámicos por tipo</span>
             </div>
             <label className="uv-crud-field">
               <span>Nombre de la categoría</span>
               <input
                 required
                 maxLength={80}
-                placeholder="Ej. Ropa Institucional, Libros, Tecnología"
+                placeholder="Ej. Ropa, Libros, Tecnología, Accesorios"
                 value={categoryName}
                 onChange={(event) => setCategoryName(event.target.value)}
               />
@@ -933,7 +1118,20 @@ function AdminCatalogPanel({
           <form className="uv-crud-card" onSubmit={createProduct}>
             <div className="uv-crud-card-header">
               <h2>2. Publicar Nuevo Producto</h2>
-              <span>Visible en el catálogo</span>
+              <span>
+                Plantilla activa:{' '}
+                <strong>
+                  {createTemplate === 'clothing'
+                    ? 'Ropa y Calzado (con Tallas)'
+                    : createTemplate === 'books'
+                      ? 'Libros y Material Académico'
+                      : createTemplate === 'tech'
+                        ? 'Tecnología y Electrónica'
+                        : createTemplate === 'accessories'
+                          ? 'Accesorios y Bolsos'
+                          : 'General'}
+                </strong>
+              </span>
             </div>
             <div className="uv-crud-grid-2">
               <label className="uv-crud-field">
@@ -941,7 +1139,7 @@ function AdminCatalogPanel({
                 <input
                   required
                   maxLength={120}
-                  placeholder="Ej. Sudadera Univalle"
+                  placeholder="Ej. Camiseta Oficial Univalle 2026"
                   value={productName}
                   onChange={(event) => setProductName(event.target.value)}
                 />
@@ -951,7 +1149,19 @@ function AdminCatalogPanel({
                 <select
                   required
                   value={effectiveCategoryId}
-                  onChange={(event) => setProductCategory(event.target.value)}
+                  onChange={(event) => {
+                    const nextId = event.target.value
+                    setProductCategory(nextId)
+                    const nextCat = activeCategories.find((c) => c.id === nextId)
+                    const nextTpl = detectCategoryTemplate(nextCat?.name ?? '')
+                    if (nextTpl === 'clothing') {
+                      setNewSizes(['S', 'M', 'L', 'XL'])
+                    } else if (nextTpl === 'accessories') {
+                      setNewSizes(['Única'])
+                    } else {
+                      setNewSizes([])
+                    }
+                  }}
                 >
                   {activeCategories.length === 0 && (
                     <option value="">Selecciona una categoría</option>
@@ -965,12 +1175,95 @@ function AdminCatalogPanel({
               </label>
             </div>
 
+            {/* Dynamic Category Options */}
+            {(createTemplate === 'clothing' ||
+              createTemplate === 'accessories') && (
+              <div className="uv-crud-dynamic-box">
+                <span className="uv-crud-dynamic-title">
+                  {createTemplate === 'clothing'
+                    ? 'Tallas disponibles para esta prenda (selecciona las que tengas en stock):'
+                    : 'Medidas / Presentación del accesorio:'}
+                </span>
+                <div className="uv-size-chips-row">
+                  {(createTemplate === 'clothing'
+                    ? CLOTHING_SIZES
+                    : ACCESSORY_SIZES
+                  ).map((sz) => {
+                    const isSelected = newSizes.includes(sz)
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        className={`uv-size-chip ${isSelected ? 'active' : ''}`}
+                        onClick={() => handleToggleNewSize(sz)}
+                      >
+                        {sz}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="uv-crud-grid-2">
+              <label className="uv-crud-field">
+                <span>
+                  {createTemplate === 'clothing'
+                    ? 'Material / Tela'
+                    : createTemplate === 'books'
+                      ? 'Autor / Editorial'
+                      : createTemplate === 'tech'
+                        ? 'Marca / Modelo'
+                        : 'Material / Especificación'}
+                </span>
+                <input
+                  maxLength={100}
+                  placeholder={
+                    createTemplate === 'clothing'
+                      ? 'Ej. Algodón Perchado 100%'
+                      : createTemplate === 'books'
+                        ? 'Ej. Editorial Universidad del Valle'
+                        : createTemplate === 'tech'
+                          ? 'Ej. Logitech / Edición Campus'
+                          : 'Ej. Acero Inoxidable / Lona'
+                  }
+                  value={newAttrPrimary}
+                  onChange={(e) => setNewAttrPrimary(e.target.value)}
+                />
+              </label>
+              <label className="uv-crud-field">
+                <span>
+                  {createTemplate === 'clothing'
+                    ? 'Color / Corte'
+                    : createTemplate === 'books'
+                      ? 'Edición / Estado'
+                      : createTemplate === 'tech'
+                        ? 'Garantía / Estado'
+                        : 'Condición / Detalle'}
+                </span>
+                <input
+                  maxLength={100}
+                  placeholder={
+                    createTemplate === 'clothing'
+                      ? 'Ej. Rojo Institucional · Unisex'
+                      : createTemplate === 'books'
+                        ? 'Ej. Edición 2026 · Nuevo'
+                        : createTemplate === 'tech'
+                          ? 'Ej. Nuevo · Garantía 6 meses'
+                          : 'Ej. Edición 75 Años UV'
+                  }
+                  value={newAttrSecondary}
+                  onChange={(e) => setNewAttrSecondary(e.target.value)}
+                />
+              </label>
+            </div>
+
             <label className="uv-crud-field">
-              <span>Descripción</span>
+              <span>Descripción detallada del producto</span>
               <textarea
-                maxLength={1000}
+                maxLength={800}
                 rows={2}
-                placeholder="Detalles, talla, material o edición..."
+                placeholder="Describe características, recomendaciones de uso o información de entrega..."
                 value={productDescription}
                 onChange={(event) => setProductDescription(event.target.value)}
               />
@@ -990,7 +1283,7 @@ function AdminCatalogPanel({
                 />
               </label>
               <label className="uv-crud-field">
-                <span>Existencias (Stock)</span>
+                <span>Existencias (Stock en inventario)</span>
                 <input
                   required
                   type="number"
@@ -1075,7 +1368,7 @@ function AdminCatalogPanel({
         <section className="uv-crud-section">
           <div className="uv-crud-section-header">
             <h2>Mis Productos Publicados ({managedProducts.length})</h2>
-            <span>Actualiza precios, stock, imágenes o estado</span>
+            <span>Actualiza precios, stock, tallas, atributos o estado</span>
           </div>
           {productLoadError ? (
             <p className="uv-crud-empty" role="alert">

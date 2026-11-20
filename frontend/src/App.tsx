@@ -32,6 +32,7 @@ type ViewMode =
   | 'shop'
   | 'cart'
   | 'profile'
+  | 'history'
   | 'moderation'
   | 'manage'
 
@@ -54,20 +55,38 @@ const EMPTY_CART: CartState = {
   },
 }
 
+function isJwtExpired(token: string): boolean {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return true
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(window.atob(base64)) as { exp?: number }
+    if (typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now()) {
+      return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
 function getSavedSession(): Session | null {
   try {
     const raw = sessionStorage.getItem(SESSION_STORAGE_KEY)
     if (!raw) return null
     const saved = JSON.parse(raw) as Partial<Session>
-    return saved.accessToken && saved.id && saved.role
-      ? {
-          accessToken: saved.accessToken,
-          id: saved.id,
-          name: saved.name || 'Usuario',
-          email: saved.email || '',
-          role: saved.role,
-        }
-      : null
+    if (!saved.accessToken || !saved.id || !saved.role) return null
+    if (isJwtExpired(saved.accessToken)) {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY)
+      return null
+    }
+    return {
+      accessToken: saved.accessToken,
+      id: saved.id,
+      name: saved.name || 'Usuario',
+      email: saved.email || '',
+      role: saved.role,
+    }
   } catch {
     return null
   }
@@ -78,6 +97,7 @@ function readLocation(): { view: ViewMode; profileId: string | null } {
   const path = window.location.pathname
   if (path === '/cart') return { view: 'cart', profileId: null }
   if (path === '/profile') return { view: 'profile', profileId: null }
+  if (path === '/history') return { view: 'history', profileId: null }
   if (path === '/moderation') return { view: 'moderation', profileId: null }
   if (path === '/manage') return { view: 'manage', profileId: null }
   const shop = path.match(/^\/shop\/([^/]+)$/)
@@ -136,12 +156,20 @@ function App() {
       })
       .catch((cause: unknown) => {
         if (active) {
-          setCart({ ...EMPTY_CART, userId, storeProfileId: storeId })
-          setCartError(
+          const msg =
             cause instanceof Error
               ? cause.message
-              : 'No se pudo cargar el carrito.',
-          )
+              : 'No se pudo cargar el carrito.'
+          if (
+            msg.toLowerCase().includes('expir') ||
+            msg.toLowerCase().includes('token inválido') ||
+            msg.toLowerCase().includes('sesión válida')
+          ) {
+            handleLogout()
+            return
+          }
+          setCart({ ...EMPTY_CART, userId, storeProfileId: storeId })
+          setCartError(msg)
         }
       })
     return () => {
@@ -159,13 +187,15 @@ function App() {
           ? '/cart'
           : nextView === 'profile'
             ? '/profile'
-            : nextView === 'moderation'
-              ? '/moderation'
-              : nextView === 'manage'
-                ? '/manage'
-                : nextView === 'shop' && profileId
-                  ? `/shop/${encodeURIComponent(profileId)}`
-                  : '/'
+            : nextView === 'history'
+              ? '/history'
+              : nextView === 'moderation'
+                ? '/moderation'
+                : nextView === 'manage'
+                  ? '/manage'
+                  : nextView === 'shop' && profileId
+                    ? `/shop/${encodeURIComponent(profileId)}`
+                    : '/'
       if (window.location.pathname !== nextPath) {
         window.history.pushState({}, '', nextPath)
       }
@@ -214,7 +244,7 @@ function App() {
     navigateTo('login')
   }
 
-  const handleAddProduct = async (product: Product) => {
+  const handleAddProduct = async (product: Product, quantity = 1) => {
     if (!session) return
     const targetStoreId = product.profileId || 'default-store'
     const store = stores.find((item) => item.id === targetStoreId)
@@ -225,7 +255,7 @@ function App() {
         profileId: storeId,
         shippingCost: store?.shippingCost ?? shippingCost,
       },
-      1,
+      quantity,
       session.accessToken,
     )
     setCart(updated)
@@ -312,25 +342,36 @@ function App() {
             clearAllCart(userId, storeId, shippingCost, session.accessToken),
           )
         }}
-        onApplyPromo={async (code) => {
+        onApplyPromo={async (code, dynamicShipping) => {
           if (!session) return
           setCart(
             await applyCartPromoCode(
               userId,
               code,
               storeId,
-              shippingCost,
+              dynamicShipping ?? shippingCost,
               session.accessToken,
             ),
           )
         }}
-        onCheckout={async (mode, address) => {
+        onSyncShippingCost={async (dynamicShipping) => {
+          if (!session) return
+          await runCartAction(
+            fetchCart(
+              userId,
+              storeId,
+              dynamicShipping,
+              session.accessToken,
+            ),
+          )
+        }}
+        onCheckout={async (mode, address, dynamicShipping) => {
           if (!session) return null
           const result = await checkoutCartOrder(
             userId,
             mode,
             storeId,
-            shippingCost,
+            dynamicShipping ?? shippingCost,
             address,
             session.accessToken,
           )
@@ -345,17 +386,22 @@ function App() {
     return <LoginPage onAuthenticated={handleAuthenticated} />
   }
 
-  if (view === 'profile') {
+  if (view === 'profile' || view === 'history') {
     return (
       <ProfilePage
         accessToken={session.accessToken}
+        userId={session.id}
         userName={session.name}
         userEmail={session.email}
         role={session.role}
         bagCount={cart.summary.totalItems}
+        initialTab={view === 'history' ? 'orders' : 'account'}
         onBack={() => navigateTo('catalog')}
+        onOpenProfile={() => navigateTo('profile')}
+        onOpenHistory={() => navigateTo('history')}
         onOpenCart={() => navigateTo('cart')}
         onOpenManage={() => navigateTo('manage')}
+        onOpenModeration={() => navigateTo('moderation')}
         onLogout={handleLogout}
       />
     )
@@ -370,6 +416,7 @@ function App() {
         bagCount={cart.summary.totalItems}
         onBack={() => navigateTo('catalog')}
         onOpenProfile={() => navigateTo('profile')}
+        onOpenHistory={() => navigateTo('history')}
         onOpenCart={() => navigateTo('cart')}
         onOpenModeration={() => navigateTo('moderation')}
         onLogout={handleLogout}
@@ -388,6 +435,7 @@ function App() {
         bagCount={cart.summary.totalItems}
         onBack={() => navigateTo('catalog')}
         onOpenProfile={() => navigateTo('profile')}
+        onOpenHistory={() => navigateTo('history')}
         onOpenManage={() => navigateTo('manage')}
         onOpenCart={() => navigateTo('cart')}
         onLogout={handleLogout}
@@ -405,6 +453,7 @@ function App() {
       userName={session.name}
       selectedStoreId={view === 'shop' ? selectedStoreId : null}
       onOpenProfile={() => navigateTo('profile')}
+      onOpenHistory={() => navigateTo('history')}
       onOpenManage={() => navigateTo('manage')}
       onOpenStore={(profileId) =>
         profileId ? navigateTo('shop', profileId) : navigateTo('catalog')

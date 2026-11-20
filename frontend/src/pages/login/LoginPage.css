@@ -2,9 +2,12 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #f6f6f7;
-  color: #1c1c1c;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(205, 31, 50, 0.055) 0%, transparent 45%),
+    radial-gradient(circle at 90% 75%, rgba(17, 24, 39, 0.04) 0%, transparent 48%),
+    var(--uv-bg);
+  color: var(--uv-text-primary);
+  font-family: var(--font-sans);
 }
 
 /* Top Institutional Bar */
@@ -12,154 +15,272 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 64px;
-  padding: 0 clamp(24px, 4vw, 56px);
-  background-color: #ffffff;
-  border-bottom: 1px solid #ececec;
+  gap: 20px;
+  height: 72px;
+  padding: 0 clamp(24px, 5vw, 64px);
+  background-color: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--uv-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
 .uv-login-brand-bar {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .uv-login-logo-img {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
-  border-radius: 2px;
+  border-radius: var(--uv-radius-xs);
+  box-shadow: var(--uv-shadow-xs);
   display: block;
 }
 
+.uv-login-brand-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 .uv-login-brand-title {
-  font-size: 13px;
+  font-family: var(--font-display);
+  font-size: 14px;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  color: #161616;
+  letter-spacing: 0.04em;
+  color: var(--uv-text-primary);
   text-transform: uppercase;
+  line-height: 1.15;
+}
+
+.uv-login-brand-sub {
+  font-size: 10.5px;
+  color: var(--uv-text-muted);
+  font-weight: 500;
+}
+
+.uv-login-topbar-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.uv-login-topbar-pills span {
+  padding: 5px 12px;
+  border-radius: var(--uv-radius-pill);
+  background-color: var(--uv-surface-subtle);
+  border: 1px solid var(--uv-border);
+  color: var(--uv-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .uv-login-topbar-right {
   display: flex;
   align-items: center;
-}
-
-.uv-login-campus-badge {
-  padding: 5px 11px;
-  background-color: #f5f5f5;
-  border: 1px solid #e5e5e5;
-  color: #555555;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-/* Main Area */
-.uv-login-main {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 56px clamp(18px, 4vw, 48px) 72px;
-}
-
-.uv-login-card-layout {
-  width: min(100%, 920px);
-  display: grid;
-  grid-template-columns: 1fr 1.15fr;
-  background-color: #ffffff;
-  border: 1px solid #e6e6e6;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-
-/* Left Soft & Understated Institutional Info Panel */
-.uv-login-showcase {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 42px 36px;
-  background-color: #fafafa;
-  border-right: 1px solid #eeeeee;
-  color: #4a4a4a;
-  position: relative;
-}
-
-.uv-login-kicker {
-  display: inline-block;
-  margin-bottom: 14px;
-  padding: 4px 10px;
-  background-color: #f0f0f0;
-  border: 1px solid #e2e2e2;
-  color: #666666;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.uv-login-showcase h2 {
-  margin: 0 0 14px;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-  color: #2b2b2b;
-}
-
-.uv-login-showcase p {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.65;
-  color: #6e6e6e;
-}
-
-.uv-login-showcase-Bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 32px;
-  padding-top: 22px;
-  border-top: 1px solid #eaeaea;
-}
-
-.uv-login-feature-item {
-  display: flex;
-  align-items: flex-start;
   gap: 10px;
 }
 
-.uv-login-feature-dot {
-  width: 6px;
-  height: 6px;
-  margin-top: 6px;
+.uv-login-campus-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--uv-radius-pill);
+  background-color: var(--univalle-red-soft);
+  border: 1px solid var(--univalle-red-border);
+  color: var(--univalle-red);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Main Flowing Container */
+.uv-login-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(32px, 5vh, 56px) clamp(20px, 4vw, 48px) 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+}
+
+.uv-login-hero-container {
+  display: grid;
+  grid-template-columns: 1.15fr 0.95fr;
+  gap: 44px;
+  align-items: center;
+}
+
+/* Left Flowing Editorial Column */
+.uv-login-editorial {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.uv-login-editorial-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.uv-login-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--uv-radius-pill);
+  background-color: var(--uv-surface);
+  border: 1px solid var(--uv-border);
+  color: var(--uv-text-secondary);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: var(--uv-shadow-xs);
+}
+
+.uv-kicker-dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background-color: #b5b5b5;
+  background-color: var(--univalle-red);
+}
+
+.uv-login-hero-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.3vw, 40px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--uv-text-primary);
+}
+
+.uv-login-hero-title span {
+  color: var(--univalle-red);
+}
+
+.uv-login-hero-lead {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--uv-text-secondary);
+  max-width: 560px;
+}
+
+/* Bento Grid of 4 Feature Cards */
+.uv-login-bento-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.uv-login-bento-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background-color: var(--uv-surface);
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-radius-lg);
+  box-shadow: var(--uv-shadow-xs);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.uv-login-bento-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--univalle-red-border);
+  box-shadow: var(--uv-shadow-sm);
+}
+
+.uv-bento-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--uv-radius-sm);
+  background-color: var(--univalle-red-soft);
+  border: 1px solid var(--univalle-red-border);
+  color: var(--univalle-red);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.uv-login-feature-item strong {
+.uv-login-bento-card strong {
   display: block;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #383838;
-  margin-bottom: 2px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--uv-text-primary);
+  margin-bottom: 3px;
 }
 
-.uv-login-feature-item span {
-  font-size: 11px;
-  color: #7d7d7d;
+.uv-login-bento-card span {
+  font-size: 12px;
+  color: var(--uv-text-muted);
+  line-height: 1.4;
+}
+
+/* Metrics Bar */
+.uv-login-metrics-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 22px;
+  background-color: var(--uv-surface);
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-radius-lg);
+  box-shadow: var(--uv-shadow-xs);
+}
+
+.uv-login-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.uv-login-metric strong {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--univalle-red);
+}
+
+.uv-login-metric span {
+  font-size: 11.5px;
+  color: var(--uv-text-muted);
+  font-weight: 500;
+}
+
+.uv-login-metric-divider {
+  width: 1px;
+  height: 28px;
+  background-color: var(--uv-border);
 }
 
 /* Right Login Form Panel */
 .uv-login-panel {
-  padding: 42px 44px;
+  padding: 40px 42px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background-color: #ffffff;
+  background-color: var(--uv-surface);
+  border: 1px solid var(--uv-border);
+  border-top: 4px solid var(--univalle-red);
+  border-radius: var(--uv-radius-xl);
+  box-shadow: var(--uv-shadow-lg);
 }
 
 .uv-login-panel-header {
@@ -169,75 +290,85 @@
 .uv-login-seal-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 10px;
 }
 
 .uv-login-panel-logo {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
-  border-radius: 2px;
+  border-radius: var(--uv-radius-sm);
+  box-shadow: var(--uv-shadow-xs);
 }
 
 .uv-login-eyebrow {
   margin: 0 0 2px;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.1em;
-  color: #cd1f32;
+  color: var(--univalle-red);
   text-transform: uppercase;
 }
 
 .uv-login-panel-header h1 {
   margin: 0;
-  font-size: 24px;
+  font-family: var(--font-display);
+  font-size: 25px;
   font-weight: 800;
-  color: #161616;
-  letter-spacing: -0.02em;
+  color: var(--uv-text-primary);
+  letter-spacing: -0.025em;
 }
 
 .uv-login-subtitle {
   margin: 0;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: #6b6b6b;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--uv-text-muted);
 }
 
 /* Mode Switcher Tabs */
 .uv-login-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 4px;
   margin-bottom: 22px;
-  border: 1px solid #e5e5e5;
-  background-color: #f9f9f9;
-  padding: 3px;
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-radius-md);
+  background-color: var(--uv-surface-subtle);
+  padding: 4px;
 }
 
 .uv-login-tab {
-  height: 34px;
-  border: none;
+  height: 38px;
+  border: 1px solid transparent;
+  border-radius: var(--uv-radius-sm);
   background: transparent;
-  color: #6b6b6b;
-  font-size: 11px;
+  color: var(--uv-text-muted);
+  font-size: 11.5px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: all 0.18s ease;
+}
+
+.uv-login-tab:hover {
+  color: var(--uv-text-primary);
 }
 
 .uv-login-tab.active {
-  background-color: #ffffff;
-  color: #cd1f32;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  background-color: var(--uv-surface);
+  color: var(--univalle-red);
+  border-color: var(--uv-border);
+  box-shadow: var(--uv-shadow-xs);
 }
 
 /* Form Fields */
 .uv-login-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .uv-login-field {
@@ -247,48 +378,49 @@
 }
 
 .uv-login-field label {
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #2b2b2b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--uv-text-secondary);
   text-transform: uppercase;
 }
 
 .uv-login-field input {
   width: 100%;
-  height: 44px;
+  height: 46px;
   padding: 0 14px;
-  border: 1px solid #d8d8d8;
-  background-color: #ffffff;
-  color: #161616;
-  font-size: 13px;
+  border: 1px solid var(--uv-border-strong);
+  border-radius: var(--uv-radius-sm);
+  background-color: var(--uv-surface);
+  color: var(--uv-text-primary);
+  font-size: 13.5px;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .uv-login-field input::placeholder {
-  color: #a6a6a6;
+  color: var(--uv-text-subtle);
 }
 
 .uv-login-field input:focus {
-  border-color: #cd1f32;
-  box-shadow: 0 0 0 3px rgba(205, 31, 50, 0.1);
+  border-color: var(--univalle-red);
+  box-shadow: 0 0 0 3px rgba(205, 31, 50, 0.12);
 }
 
 .uv-login-field input[aria-invalid='true'] {
-  border-color: #cd1f32;
-  background-color: #fffafa;
+  border-color: var(--univalle-red);
+  background-color: var(--univalle-red-soft);
 }
 
 .uv-login-field-hint {
-  font-size: 11px;
-  color: #828282;
+  font-size: 11.5px;
+  color: var(--uv-text-muted);
 }
 
 .uv-login-field-error {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
-  color: #cd1f32;
+  color: var(--univalle-red);
 }
 
 .uv-login-password-wrap {
@@ -296,7 +428,7 @@
 }
 
 .uv-login-password-wrap input {
-  padding-right: 84px;
+  padding-right: 92px;
 }
 
 .uv-login-password-toggle {
@@ -304,38 +436,45 @@
   top: 50%;
   right: 8px;
   transform: translateY(-50%);
-  height: 28px;
-  padding: 0 8px;
-  border: none;
-  background: transparent;
-  color: #555555;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-radius-xs);
+  background: var(--uv-surface-muted);
+  color: var(--uv-text-secondary);
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .uv-login-password-toggle:hover {
-  color: #cd1f32;
+  border-color: var(--univalle-red);
+  color: var(--univalle-red);
+  background-color: var(--univalle-red-soft);
 }
 
 /* Primary Submit Button */
 .uv-login-submit {
-  height: 46px;
+  height: 48px;
   margin-top: 4px;
   border: none;
-  background-color: #cd1f32;
+  border-radius: var(--uv-radius-sm);
+  background-color: var(--univalle-red);
   color: #ffffff;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  box-shadow: var(--uv-shadow-red);
+  transition: background-color 0.18s ease, transform 0.15s ease;
 }
 
 .uv-login-submit:hover:not(:disabled) {
-  background-color: #b01829;
+  background-color: var(--univalle-red-hover);
+  transform: translateY(-1px);
 }
 
 .uv-login-submit:disabled {
@@ -345,42 +484,48 @@
 
 .uv-login-status {
   margin: 0;
-  padding: 11px 14px;
-  font-size: 12px;
+  padding: 12px 14px;
+  border-radius: var(--uv-radius-sm);
+  font-size: 12.5px;
+  font-weight: 500;
   line-height: 1.45;
-  border-left: 3px solid #161616;
+  border: 1px solid var(--uv-border);
+  border-left-width: 4px;
 }
 
 .uv-login-status--error {
-  border-left-color: #cd1f32;
-  background-color: #fdf2f3;
-  color: #a11625;
+  border-color: var(--univalle-red-border);
+  border-left-color: var(--univalle-red);
+  background-color: var(--univalle-red-soft);
+  color: var(--univalle-red-dark);
 }
 
 .uv-login-status--success {
-  border-left-color: #1f7a3f;
-  background-color: #eefaf2;
-  color: #186332;
+  border-color: var(--uv-success-border);
+  border-left-color: var(--uv-success);
+  background-color: var(--uv-success-bg);
+  color: var(--uv-success);
 }
 
 .uv-login-bottom-switch {
   margin-top: 22px;
   padding-top: 18px;
-  border-top: 1px solid #eeeeee;
+  border-top: 1px solid var(--uv-border);
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  font-size: 12px;
-  color: #6b6b6b;
+  font-size: 12.5px;
+  color: var(--uv-text-muted);
 }
 
 .uv-login-mode-switch {
   border: none;
   background: none;
   padding: 0;
-  color: #cd1f32;
-  font-size: 12px;
+  color: var(--univalle-red);
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -389,17 +534,78 @@
   text-decoration: underline;
 }
 
-@media (max-width: 820px) {
-  .uv-login-card-layout {
-    grid-template-columns: 1fr;
-    max-width: 480px;
+/* Bottom Flowing Steps Strip */
+.uv-login-steps-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  padding-top: 12px;
+}
+
+.uv-login-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 22px;
+  background-color: var(--uv-surface);
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-radius-lg);
+  box-shadow: var(--uv-shadow-xs);
+}
+
+.uv-login-step-num {
+  padding: 4px 9px;
+  border-radius: var(--uv-radius-xs);
+  background-color: var(--univalle-red-soft);
+  border: 1px solid var(--univalle-red-border);
+  color: var(--univalle-red);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.uv-login-step-item strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--uv-text-primary);
+  margin-bottom: 4px;
+}
+
+.uv-login-step-item p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--uv-text-muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 980px) {
+  .uv-login-topbar-pills {
+    display: none;
   }
 
-  .uv-login-showcase {
-    padding: 28px 28px;
+  .uv-login-hero-container {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .uv-login-steps-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .uv-login-bento-grid {
+    grid-template-columns: 1fr;
   }
 
   .uv-login-panel {
-    padding: 32px 26px;
+    padding: 30px 22px;
+  }
+
+  .uv-login-metric-divider {
+    display: none;
   }
 }

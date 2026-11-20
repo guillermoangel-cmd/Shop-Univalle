@@ -147,38 +147,100 @@ function LoginPage({ onAuthenticated }: LoginPageProps) {
       </header>
 
       <main className="uv-login-main">
-        <div className="uv-login-card-layout">
-          {/* Left Institutional Showcase Panel */}
-          <aside className="uv-login-showcase" aria-hidden="true">
-            <div className="uv-login-showcase-top">
-              <span className="uv-login-kicker">TIENDA OFICIAL · EST. 1945</span>
-              <h2>
-                Talento, identidad y comercio universitario en un solo lugar.
+        {/* Flowing Two-Column Hero + Auth Section */}
+        <div className="uv-login-hero-container">
+          {/* Left Flowing Editorial & Categories Showcase */}
+          <section className="uv-login-editorial" aria-label="Presentación Tienda Univalle">
+            <div className="uv-login-editorial-header">
+              <span className="uv-login-kicker">
+                <span className="uv-kicker-dot" />
+                COMERCIO ELECTRÓNICO UNIVERSITARIO · EST. 1945
+              </span>
+              <h2 className="uv-login-hero-title">
+                Todo el talento y la identidad de{' '}
+                <span>Univalle</span> en un solo ecosistema.
               </h2>
-              <p>
-                Explora productos oficiales, publicaciones académicas y
-                emprendimientos de estudiantes, docentes y administrativos de la
-                Universidad del Valle.
+              <p className="uv-login-hero-lead">
+                Adquiere indumentaria oficial, publicaciones académicas y
+                productos creados por estudiantes, docentes y administrativos de
+                nuestra universidad, con envíos calculados desde el campus.
               </p>
             </div>
 
-            <div className="uv-login-showcase-Bottom">
-              <div className="uv-login-feature-item">
-                <span className="uv-login-feature-dot" />
-                <div>
-                  <strong>Exclusivo @correounivalle.edu.co</strong>
-                  <span>Acceso verificado por rol institucional</span>
+            {/* Category Preview Bento Grid */}
+            <div className="uv-login-bento-grid" aria-hidden="true">
+              <article className="uv-login-bento-card">
+                <div className="uv-bento-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+                  </svg>
                 </div>
+                <div>
+                  <strong>Ropa & Souvenirs UV</strong>
+                  <span>Prendas con selección de tallas S a XXL</span>
+                </div>
+              </article>
+
+              <article className="uv-login-bento-card">
+                <div className="uv-bento-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <strong>Libros & Material Académico</strong>
+                  <span>Editorial Univalle, guías y papelería</span>
+                </div>
+              </article>
+
+              <article className="uv-login-bento-card">
+                <div className="uv-bento-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+                </div>
+                <div>
+                  <strong>Tu Propia Tienda UV</strong>
+                  <span>Publica y gestiona tu inventario</span>
+                </div>
+              </article>
+
+              <article className="uv-login-bento-card">
+                <div className="uv-bento-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="1" y="3" width="15" height="13" />
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                    <circle cx="5.5" cy="18.5" r="2.5" />
+                    <circle cx="18.5" cy="18.5" r="2.5" />
+                  </svg>
+                </div>
+                <div>
+                  <strong>Envío por Distancia</strong>
+                  <span>Cálculo automático en Cali y área metropolitana</span>
+                </div>
+              </article>
+            </div>
+
+            {/* Institutional Metrics Strip */}
+            <div className="uv-login-metrics-bar" aria-hidden="true">
+              <div className="uv-login-metric">
+                <strong>100%</strong>
+                <span>Comunidad @correounivalle.edu.co</span>
               </div>
-              <div className="uv-login-feature-item">
-                <span className="uv-login-feature-dot" />
-                <div>
-                  <strong>Tiendas & Catálogo Integrado</strong>
-                  <span>Compra o gestiona tus propios productos</span>
-                </div>
+              <div className="uv-login-metric-divider" />
+              <div className="uv-login-metric">
+                <strong>3 Roles</strong>
+                <span>Estudiante · Docente · Administrativo</span>
+              </div>
+              <div className="uv-login-metric-divider" />
+              <div className="uv-login-metric">
+                <strong>Cupones UV</strong>
+                <span>Descuentos institucionales activos</span>
               </div>
             </div>
-          </aside>
+          </section>
 
           {/* Right Form Panel */}
           <section className="uv-login-panel" aria-labelledby="login-title">
@@ -199,7 +261,7 @@ function LoginPage({ onAuthenticated }: LoginPageProps) {
 
               <p className="uv-login-subtitle">
                 {mode === 'login'
-                  ? 'Ingresa con tus credenciales institucionales para acceder al catálogo.'
+                  ? 'Ingresa con tus credenciales institucionales para explorar el catálogo y gestionar tus pedidos.'
                   : 'Configura tu contraseña por primera vez con tu correo institucional autorizado.'}
               </p>
             </div>
@@ -380,6 +442,31 @@ function LoginPage({ onAuthenticated }: LoginPageProps) {
             </div>
           </section>
         </div>
+
+        {/* Bottom Flowing Steps Strip before Footer */}
+        <section className="uv-login-steps-strip" aria-label="Cómo funciona Tienda Univalle">
+          <div className="uv-login-step-item">
+            <span className="uv-login-step-num">01</span>
+            <div>
+              <strong>Activa e Ingresa con tu Correo UV</strong>
+              <p>Validación instantánea con el censo universitario de estudiantes, docentes y administrativos.</p>
+            </div>
+          </div>
+          <div className="uv-login-step-item">
+            <span className="uv-login-step-num">02</span>
+            <div>
+              <strong>Explora o Publica en tu Tienda</strong>
+              <p>Inspecciona productos a detalle con tallas y vendedores, o administra tus propias publicaciones desde tu perfil.</p>
+            </div>
+          </div>
+          <div className="uv-login-step-item">
+            <span className="uv-login-step-num">03</span>
+            <div>
+              <strong>Recibe en el Campus o en tu Casa</strong>
+              <p>Calculamos el envío según los kilómetros desde Univalle y aplicamos cupones institucionales.</p>
+            </div>
+          </div>
+        </section>
       </main>
 
       <UnivalleFooter />

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { fetchCustomerOrders } from '../../api/ordersApi'
 import {
   addCustomerAddress,
   deleteCustomerAddress,
@@ -9,6 +10,13 @@ import {
   type CurrentUser,
   type StoreProfile,
 } from '../../api/usersApi'
+import type { OrderReceipt } from '../../types/cart'
+import {
+  UNIVALLE_SHIPPING_ZONES,
+  calculateShippingByDistance,
+  calculateShippingForAddress,
+  formatAddressDetailsWithDistance,
+} from '../../utils/shippingCalculator'
 import '../catalogo/CatalogPage.css'
 
 const copFormatter = new Intl.NumberFormat('es-CO', {
@@ -17,37 +25,66 @@ const copFormatter = new Intl.NumberFormat('es-CO', {
   maximumFractionDigits: 0,
 })
 
+function formatPrice(value: number): string {
+  return copFormatter.format(value).replace(/\s+/g, '')
+}
+
 interface ProfilePageProps {
   accessToken: string
+  userId?: string
   userName?: string
   userEmail?: string
   role?: string
   bagCount?: number
+  initialTab?: ProfileSectionTab
   onBack: () => void
+  onOpenProfile?: () => void
+  onOpenHistory?: () => void
   onOpenCart?: () => void
   onOpenManage?: () => void
+  onOpenModeration?: () => void
   onLogout: () => void
 }
 
+type ProfileSectionTab = 'account' | 'orders'
+
 function ProfilePage({
   accessToken,
+  userId = '',
   userName = 'Usuario',
   userEmail = '',
   role = 'ESTUDIANTE',
   bagCount = 0,
+  initialTab = 'account',
   onBack,
+  onOpenProfile,
+  onOpenHistory,
   onOpenCart,
   onOpenManage,
+  onOpenModeration,
   onLogout,
 }: ProfilePageProps) {
+  const [activeTab, setActiveTab] = useState<ProfileSectionTab>(initialTab)
+
+  useEffect(() => {
+    setActiveTab(initialTab)
+  }, [initialTab])
   const [user, setUser] = useState<CurrentUser | null>(null)
   const [storeProfile, setStoreProfile] = useState<StoreProfile | null>(null)
+  const [orders, setOrders] = useState<OrderReceipt[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+
   const [nickname, setNickname] = useState('')
   const [storeAddress, setStoreAddress] = useState('')
   const [shippingCost, setShippingCost] = useState('0')
+
+  // Delivery address creation with distance calculation
   const [label, setLabel] = useState('')
   const [address, setAddress] = useState('')
   const [details, setDetails] = useState('')
+  const [selectedZoneId, setSelectedZoneId] = useState('zona-sur')
+  const [distanceKm, setDistanceKm] = useState(3.5)
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -60,6 +97,11 @@ function ProfilePage({
       ? 'Docente'
       : 'Estudiante'
 
+  const liveAddressShipping = calculateShippingByDistance(
+    distanceKm,
+    selectedZoneId,
+  )
+
   useEffect(() => {
     let active = true
     Promise.all([getCurrentUser(accessToken), getMyProfile(accessToken)])
@@ -71,6 +113,21 @@ function ProfilePage({
         setStoreAddress(myProfileData.address || '')
         setShippingCost(String(myProfileData.shippingCost))
         setError('')
+
+        const effectiveUserId = currentUserData.id || userId
+        if (effectiveUserId) {
+          setOrdersLoading(true)
+          void fetchCustomerOrders(effectiveUserId, accessToken)
+            .then((orderList) => {
+              if (active) setOrders(Array.isArray(orderList) ? orderList : [])
+            })
+            .catch(() => {
+              if (active) setOrders([])
+            })
+            .finally(() => {
+              if (active) setOrdersLoading(false)
+            })
+        }
       })
       .catch((cause: unknown) => {
         if (active) {
@@ -87,7 +144,7 @@ function ProfilePage({
     return () => {
       active = false
     }
-  }, [accessToken])
+  }, [accessToken, userId])
 
   async function saveStore(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -119,10 +176,15 @@ function ProfilePage({
     setError('')
     setMessage('')
     try {
+      const formattedDetails = formatAddressDetailsWithDistance(
+        details.trim(),
+        selectedZoneId,
+        distanceKm,
+      )
       const result = await addCustomerAddress(accessToken, {
         label: label.trim(),
         address: address.trim(),
-        details: details.trim(),
+        details: formattedDetails,
       })
       setUser((current) =>
         current
@@ -136,7 +198,9 @@ function ProfilePage({
       setLabel('')
       setAddress('')
       setDetails('')
-      setMessage('Dirección agregada a tu libreta de entregas.')
+      setMessage(
+        `Dirección agregada con tarifa por distancia (${liveAddressShipping.distanceKm} km → ${formatPrice(liveAddressShipping.shippingCost)}).`,
+      )
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -222,8 +286,25 @@ function ProfilePage({
           <button type="button" className="uv-header-tab" onClick={onBack}>
             CATÁLOGO
           </button>
-          <button type="button" className="uv-header-tab active">
+          <button
+            type="button"
+            className={`uv-header-tab ${activeTab === 'account' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('account')
+              onOpenProfile?.()
+            }}
+          >
             MI PERFIL
+          </button>
+          <button
+            type="button"
+            className={`uv-header-tab ${activeTab === 'orders' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('orders')
+              onOpenHistory?.()
+            }}
+          >
+            HISTORIAL ({orders.length})
           </button>
           {onOpenManage && (
             <button
@@ -231,7 +312,16 @@ function ProfilePage({
               className="uv-header-tab"
               onClick={onOpenManage}
             >
-              GESTIÓN CRUD
+              GESTIÓN
+            </button>
+          )}
+          {isAdmin && onOpenModeration && (
+            <button
+              type="button"
+              className="uv-header-tab"
+              onClick={onOpenModeration}
+            >
+              MODERACIÓN
             </button>
           )}
         </div>
@@ -246,6 +336,7 @@ function ProfilePage({
             className="uv-header-icon-btn active"
             aria-label="Mi perfil"
             title="Estás en tu perfil"
+            onClick={() => setActiveTab('account')}
           >
             <svg
               width="19"
@@ -312,24 +403,9 @@ function ProfilePage({
               <h1 className="uv-subpage-title">{displayName}</h1>
               <p className="uv-subpage-desc">
                 {displayEmail || 'Comunidad Universidad del Valle'} · Administra
-                los datos de tu tienda y tus direcciones de entrega.
+                tu tienda y tus direcciones con cálculo de envío por distancia.
               </p>
             </div>
-          </div>
-
-          <div className="uv-admin-toolbar-actions">
-            {onOpenManage && (
-              <button
-                type="button"
-                className="uv-admin-btn primary"
-                onClick={onOpenManage}
-              >
-                Ir a Gestión de Productos (CRUD)
-              </button>
-            )}
-            <button type="button" className="uv-admin-btn" onClick={onBack}>
-              ← Volver al Catálogo
-            </button>
           </div>
         </div>
 
@@ -358,12 +434,16 @@ function ProfilePage({
           </div>
         )}
 
-        {user && storeProfile && (
+        {/* TAB 1: STORE PROFILE & DELIVERY ADDRESSES WITH DISTANCE CALCULATOR */}
+        {activeTab === 'account' && user && storeProfile && (
           <div className="uv-crud-forms-grid">
             {/* Store Profile Configuration Card */}
-            <section className="uv-crud-card" aria-labelledby="store-profile-title">
+            <section
+              className="uv-crud-card"
+              aria-labelledby="store-profile-title"
+            >
               <div className="uv-crud-card-header">
-                <h2 id="store-profile-title">Mi Perfil de Tienda</h2>
+                <h2 id="store-profile-title">Mi Perfil de Vendedor / Tienda</h2>
                 <span
                   className={`uv-status-badge ${storeProfile.active ? 'active' : 'inactive'}`}
                 >
@@ -372,25 +452,26 @@ function ProfilePage({
               </div>
 
               <p className="uv-profile-card-note">
-                Define el nombre visible de tu tienda en el catálogo, su ubicación
-                de despacho y la tarifa base de envío para tus compradores.
+                Este nombre o apodo se muestra públicamente como{' '}
+                <strong>Vendedor</strong> en cada uno de los productos que
+                publiques en el catálogo.
               </p>
 
               <form className="uv-profile-form-stack" onSubmit={saveStore}>
                 <label className="uv-crud-field">
-                  <span>Apodo / Nombre comercial de tu tienda</span>
+                  <span>Apodo / Nombre público de tu tienda</span>
                   <input
                     required
                     minLength={2}
                     maxLength={80}
-                    placeholder="Ej. Librería Ingeniería UV"
+                    placeholder="Ej. Librería Ingeniería UV / Tienda de Juan"
                     value={nickname}
                     onChange={(event) => setNickname(event.target.value)}
                   />
                 </label>
 
                 <label className="uv-crud-field">
-                  <span>Dirección o punto de despacho de la tienda</span>
+                  <span>Ubicación o sede de despacho en Univalle</span>
                   <input
                     maxLength={180}
                     placeholder="Ej. Campus Meléndez · Edificio E20"
@@ -400,7 +481,7 @@ function ProfilePage({
                 </label>
 
                 <label className="uv-crud-field">
-                  <span>Tarifa de envío estimada (COP)</span>
+                  <span>Tarifa base de despacho (COP)</span>
                   <input
                     required
                     type="number"
@@ -412,12 +493,8 @@ function ProfilePage({
                 </label>
 
                 <div className="uv-profile-shipping-preview">
-                  <span>Tarifa actual aplicada a tus compradores:</span>
-                  <strong>
-                    {copFormatter
-                      .format(Number(shippingCost || 0))
-                      .replace(/\s+/g, '')}
-                  </strong>
+                  <span>Vendedor visible en catálogo como:</span>
+                  <strong>{nickname || displayName}</strong>
                 </div>
 
                 <button
@@ -425,15 +502,17 @@ function ProfilePage({
                   type="submit"
                   disabled={saving}
                 >
-                  {saving ? 'Guardando…' : 'Guardar Configuración de Tienda'}
+                  {saving ? 'Guardando…' : 'Guardar Perfil de Tienda'}
                 </button>
               </form>
             </section>
 
-            {/* Delivery Addresses Card */}
+            {/* Delivery Addresses Card with Distance Shipping Logic */}
             <section className="uv-crud-card" aria-labelledby="addresses-title">
               <div className="uv-crud-card-header">
-                <h2 id="addresses-title">Mis Direcciones de Entrega</h2>
+                <h2 id="addresses-title">
+                  Mis Direcciones de Entrega (Tarifa por Distancia)
+                </h2>
                 <span>{user.addresses.length} registradas</span>
               </div>
 
@@ -443,29 +522,80 @@ function ProfilePage({
                     <span>Etiqueta</span>
                     <input
                       required
-                      maxLength={60}
-                      placeholder="Casa, Campus Meléndez, Oficina"
+                      maxLength={40}
+                      placeholder="Casa, Campus Meléndez, Apto"
                       value={label}
                       onChange={(event) => setLabel(event.target.value)}
                     />
                   </label>
                   <label className="uv-crud-field">
-                    <span>Dirección principal</span>
+                    <span>Dirección de entrega</span>
                     <input
                       required
                       maxLength={180}
-                      placeholder="Calle 13 # 100-00"
+                      placeholder="Calle 13 # 100-00 / Cra 80 # 16-20"
                       value={address}
                       onChange={(event) => setAddress(event.target.value)}
                     />
                   </label>
                 </div>
 
+                {/* Distance & Zone Selector from Univalle */}
+                <div className="uv-distance-calc-box">
+                  <div className="uv-crud-grid-2">
+                    <label className="uv-crud-field">
+                      <span>Zona de destino respecto a Univalle</span>
+                      <select
+                        value={selectedZoneId}
+                        onChange={(e) => {
+                          const nextZoneId = e.target.value
+                          setSelectedZoneId(nextZoneId)
+                          const z = UNIVALLE_SHIPPING_ZONES.find(
+                            (item) => item.id === nextZoneId,
+                          )
+                          if (z) setDistanceKm(z.defaultDistanceKm)
+                        }}
+                      >
+                        {UNIVALLE_SHIPPING_ZONES.map((z) => (
+                          <option key={z.id} value={z.id}>
+                            {z.name} (~{z.defaultDistanceKm} km)
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="uv-crud-field">
+                      <span>Distancia estimada desde Univalle (km)</span>
+                      <input
+                        type="number"
+                        min="0.5"
+                        max="45"
+                        step="0.5"
+                        value={distanceKm}
+                        onChange={(e) =>
+                          setDistanceKm(Math.max(0.5, Number(e.target.value)))
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <div className="uv-distance-calc-result">
+                    <span>
+                      A mayor distancia del campus, mayor valor de envío (
+                      <strong>{liveAddressShipping.distanceKm} km</strong>):
+                    </span>
+                    <strong>
+                      Envío estimado:{' '}
+                      {formatPrice(liveAddressShipping.shippingCost)}
+                    </strong>
+                  </div>
+                </div>
+
                 <label className="uv-crud-field">
-                  <span>Detalles / Punto de referencia (opcional)</span>
+                  <span>Punto de referencia / Portería (opcional)</span>
                   <input
-                    maxLength={240}
-                    placeholder="Edificio E20, oficina 204, portería peatonal..."
+                    maxLength={140}
+                    placeholder="Edificio E20, oficina 204, conjunto residencial..."
                     value={details}
                     onChange={(event) => setDetails(event.target.value)}
                   />
@@ -476,19 +606,20 @@ function ProfilePage({
                   type="submit"
                   disabled={saving}
                 >
-                  + Agregar Dirección de Entrega
+                  + Agregar Dirección con Tarifa de Envío
                 </button>
               </form>
 
               <div className="uv-address-list">
                 {user.addresses.length === 0 ? (
                   <p className="uv-crud-empty">
-                    Aún no tienes direcciones registradas. Agrega una para poder
-                    finalizar tus compras en el carrito.
+                    Aún no tienes direcciones registradas. Agrega una para
+                    calcular el envío según la distancia y finalizar tus compras.
                   </p>
                 ) : (
                   user.addresses.map((item) => {
                     const selected = user.selectedAddressId === item.id
+                    const addrShipping = calculateShippingForAddress(item)
                     return (
                       <article
                         className={`uv-address-card ${selected ? 'selected' : ''}`}
@@ -502,6 +633,10 @@ function ProfilePage({
                                 Predeterminada
                               </span>
                             )}
+                            <span className="uv-address-shipping-pill">
+                              {addrShipping.distanceKm} km · Envío:{' '}
+                              {formatPrice(addrShipping.shippingCost)}
+                            </span>
                           </div>
                           <p>{item.address}</p>
                           {item.details && <span>{item.details}</span>}
@@ -534,6 +669,153 @@ function ProfilePage({
               </div>
             </section>
           </div>
+        )}
+
+        {/* TAB 2: ORDER HISTORY (HISTORIAL DE PEDIDOS) */}
+        {activeTab === 'orders' && (
+          <section
+            className="uv-crud-section"
+            aria-labelledby="order-history-heading"
+          >
+            <div className="uv-crud-section-header">
+              <div>
+                <h2 id="order-history-heading">
+                  Historial de Mis Pedidos ({orders.length})
+                </h2>
+                <span>
+                  Registro histórico de compras procesadas en el microservicio
+                  de órdenes (orders-service)
+                </span>
+              </div>
+              {onOpenCart && (
+                <button
+                  type="button"
+                  className="uv-crud-btn secondary"
+                  onClick={onOpenCart}
+                >
+                  Ir a Mi Carrito Actual →
+                </button>
+              )}
+            </div>
+
+            {ordersLoading ? (
+              <div className="uv-empty-catalog">
+                <strong>Consultando historial de pedidos...</strong>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="uv-empty-catalog">
+                <strong>Aún no has realizado pedidos</strong>
+                <p>
+                  Cuando agregues productos al carrito y completes un pedido,
+                  aparecerá aquí con todo su desglose de productos, envío por
+                  distancia e impuestos.
+                </p>
+              </div>
+            ) : (
+              <div className="uv-orders-history-list">
+                {orders.map((order) => {
+                  const formattedDate = order.createdAt
+                    ? new Date(order.createdAt).toLocaleString('es-CO', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })
+                    : 'Reciente'
+
+                  return (
+                    <article
+                      className="uv-order-history-card"
+                      key={order.id ?? order.orderNumber}
+                    >
+                      <div className="uv-order-history-header">
+                        <div>
+                          <span className="uv-order-number-badge">
+                            ORDEN #{order.orderNumber}
+                          </span>
+                          <span className="uv-order-date">
+                            Realizado el {formattedDate}
+                          </span>
+                        </div>
+                        <div className="uv-order-header-right">
+                          <span className="uv-status-badge active">
+                            {order.status === 'PAID'
+                              ? 'PAGADO'
+                              : 'CONFIRMADO · PENDIENTE PAGO'}
+                          </span>
+                          <strong className="uv-order-total-highlight">
+                            {formatPrice(order.totalFinal)}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="uv-order-delivery-bar">
+                        <span>
+                          <strong>Dirección de entrega:</strong>{' '}
+                          {order.deliveryAddress}
+                        </span>
+                        {order.promoCode && (
+                          <span className="uv-role-pill admin">
+                            Cupón aplicado: {order.promoCode}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="uv-order-items-table">
+                        {order.items.map((item, idx) => (
+                          <div
+                            className="uv-order-history-item"
+                            key={`${item.productId}-${idx}`}
+                          >
+                            <div className="uv-order-history-item-main">
+                              <strong>{item.name}</strong>
+                              <span>
+                                {item.category}
+                                {item.description
+                                  ? ` · ${item.description}`
+                                  : ''}
+                              </span>
+                            </div>
+                            <div className="uv-order-history-item-numbers">
+                              <span>
+                                {item.quantity} x {formatPrice(item.price)}
+                              </span>
+                              <strong>
+                                {formatPrice(
+                                  item.lineTotal ?? item.price * item.quantity,
+                                )}
+                              </strong>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="uv-order-financial-footer">
+                        <span>
+                          Subtotal: <strong>{formatPrice(order.subtotal)}</strong>
+                        </span>
+                        {order.discountAmount > 0 && (
+                          <span className="uv-discount-text">
+                            Descuento:{' '}
+                            <strong>-{formatPrice(order.discountAmount)}</strong>
+                          </span>
+                        )}
+                        <span>
+                          Envío (por distancia):{' '}
+                          <strong>{formatPrice(order.estimatedShipping)}</strong>
+                        </span>
+                        <span>
+                          IVA (19%): <strong>+{formatPrice(order.taxes)}</strong>
+                        </span>
+                        <span className="uv-order-final-sum">
+                          Total Final:{' '}
+                          <strong>{formatPrice(order.totalFinal)}</strong>
+                        </span>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </section>
         )}
       </main>
     </div>
