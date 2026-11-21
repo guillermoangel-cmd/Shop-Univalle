@@ -43,7 +43,7 @@ import {
 				secret:
 					config.get<string>('JWT_SECRET') ??
 					'univalle-shop-dev-jwt-secret-2026',
-				signOptions: { expiresIn: '1h' },
+				signOptions: { expiresIn: '24h' },
 			}),
 		}),
 		MongooseModule.forFeature([

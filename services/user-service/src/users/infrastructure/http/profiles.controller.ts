@@ -53,13 +53,24 @@ export class ProfilesController {
 	@Get('me')
 	@UseGuards(UserAuthGuard)
 	async getMine(@Req() request: AuthenticatedRequest) {
+		const fallbackName = request.user.email.split('@')[0] || 'Mi Tienda';
 		const profile = await this.profileModel
-			.findOne({ userId: request.user.sub })
+			.findOneAndUpdate(
+				{ userId: request.user.sub },
+				{
+					$setOnInsert: {
+						userId: request.user.sub,
+						nickname: fallbackName,
+						address: '',
+						shippingCost: 0,
+						imageUrl: DEFAULT_PROFILE_IMAGE,
+						active: true,
+					},
+				},
+				{ new: true, upsert: true },
+			)
 			.lean()
 			.exec();
-		if (!profile) {
-			throw new BadRequestException('El perfil de tienda aún no está creado');
-		}
 		return toProfileResponse(profile as ProfileMongoDocument);
 	}
 

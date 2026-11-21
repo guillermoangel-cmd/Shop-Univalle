@@ -1,286 +1,611 @@
-.login-page {
-  display: grid;
+.uv-login-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  align-content: center;
-  justify-items: center;
-  padding: 32px 20px 20px;
   background:
-    linear-gradient(135deg, transparent 0 49.8%, #2c42520a 50%, transparent 50.2%) 0 0 / 34px 34px,
-    var(--paper);
+    radial-gradient(circle at 10% 15%, rgba(205, 31, 50, 0.055) 0%, transparent 45%),
+    radial-gradient(circle at 90% 75%, rgba(17, 24, 39, 0.04) 0%, transparent 48%),
+    var(--uv-bg);
+  color: var(--uv-text-primary);
+  font-family: var(--font-sans);
 }
 
-.login-panel {
-  width: min(100%, 440px);
-  padding: 35px 40px 32px;
-  border: 1px solid #e8e4df;
-  border-top: 4px solid var(--univalle-red);
-  border-radius: 8px;
-  background: var(--univalle-white);
-  box-shadow: 0 18px 50px #202a3012, 0 3px 12px #202a300d;
-  animation: login-arrive 420ms ease both;
+/* Top Institutional Bar */
+.uv-login-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  height: 72px;
+  padding: 0 clamp(24px, 5vw, 64px);
+  background-color: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--uv-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
-.login-brand {
-  display: grid;
-  justify-items: center;
-  gap: 7px;
-  margin-bottom: 12px;
-  color: var(--univalle-gray);
+.uv-login-brand-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.login-brand__seal {
-  display: grid;
-  width: 48px;
-  aspect-ratio: 1;
-  place-items: center;
-  border: 2px solid var(--univalle-red);
-  border-radius: 50%;
-  color: var(--univalle-red);
-  font: 700 14px/1 var(--mono);
+.uv-login-logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: var(--uv-radius-xs);
+  box-shadow: var(--uv-shadow-xs);
+  display: block;
 }
 
-.login-brand__name {
-  color: var(--univalle-black);
-  font: 600 21px/1.2 var(--display);
+.uv-login-brand-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
-.login-brand__caption {
-  color: #68737a;
-  font: 10px/1.4 var(--mono);
+.uv-login-brand-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--uv-text-primary);
   text-transform: uppercase;
+  line-height: 1.15;
 }
 
-.login-heading {
-  margin-bottom: 23px;
-  text-align: center;
+.uv-login-brand-sub {
+  font-size: 10.5px;
+  color: var(--uv-text-muted);
+  font-weight: 500;
 }
 
-.login-eyebrow {
-  margin: 0 0 8px;
-  color: var(--univalle-red);
-  font: 500 10px/1.4 var(--mono);
-  text-transform: uppercase;
+.uv-login-topbar-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.login-heading h1 {
-  margin: 0;
-  color: var(--univalle-black);
-  font: 500 30px/1.2 var(--display);
-}
-
-.login-heading > p:last-child {
-  margin: 9px 0 0;
-  color: #62676b;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.login-form {
-  display: grid;
-  gap: 18px;
-}
-
-.login-field {
-  display: grid;
-  gap: 7px;
-}
-
-.login-field label {
-  color: var(--univalle-gray);
-  font-size: 12px;
+.uv-login-topbar-pills span {
+  padding: 5px 12px;
+  border-radius: var(--uv-radius-pill);
+  background-color: var(--uv-surface-subtle);
+  border: 1px solid var(--uv-border);
+  color: var(--uv-text-secondary);
+  font-size: 11px;
   font-weight: 600;
 }
 
-.login-field input {
+.uv-login-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.uv-login-campus-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--uv-radius-pill);
+  background-color: var(--univalle-red-soft);
+  border: 1px solid var(--univalle-red-border);
+  color: var(--univalle-red);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Main Flowing Container */
+.uv-login-main {
+  flex: 1;
   width: 100%;
-  min-height: 47px;
-  padding: 0 13px;
-  border: 1px solid #cbd1d5;
-  border-radius: 4px;
-  outline: 0;
-  background: #fff;
-  color: var(--univalle-black);
-  font: 14px/1.4 var(--body);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(32px, 5vh, 56px) clamp(20px, 4vw, 48px) 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
 }
 
-.login-field input::placeholder {
-  color: #8a9297;
+.uv-login-hero-container {
+  display: grid;
+  grid-template-columns: 1.15fr 0.95fr;
+  gap: 44px;
+  align-items: center;
+}
+
+/* Left Flowing Editorial Column */
+.uv-login-editorial {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.uv-login-editorial-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.uv-login-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--uv-radius-pill);
+  background-color: var(--uv-surface);
+  border: 1px solid var(--uv-border);
+  color: var(--uv-text-secondary);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: var(--uv-shadow-xs);
+}
+
+.uv-kicker-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--univalle-red);
+}
+
+.uv-login-hero-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.3vw, 40px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--uv-text-primary);
+}
+
+.uv-login-hero-title span {
+  color: var(--univalle-red);
+}
+
+.uv-login-hero-lead {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--uv-text-secondary);
+  max-width: 560px;
+}
+
+/* Bento Grid of 4 Feature Cards */
+.uv-login-bento-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.uv-login-bento-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background-color: var(--uv-surface);
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-radius-lg);
+  box-shadow: var(--uv-shadow-xs);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.uv-login-bento-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--univalle-red-border);
+  box-shadow: var(--uv-shadow-sm);
+}
+
+.uv-bento-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--uv-radius-sm);
+  background-color: var(--univalle-red-soft);
+  border: 1px solid var(--univalle-red-border);
+  color: var(--univalle-red);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.uv-login-bento-card strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--uv-text-primary);
+  margin-bottom: 3px;
+}
+
+.uv-login-bento-card span {
   font-size: 12px;
-}
-
-.login-field input:focus {
-  border-color: var(--shop-blue);
-  box-shadow: 0 0 0 3px #1a73e81c;
-}
-
-.login-field input[aria-invalid='true'] {
-  border-color: var(--univalle-red);
-}
-
-.login-field__hint,
-.login-field__error {
-  font-size: 11px;
+  color: var(--uv-text-muted);
   line-height: 1.4;
 }
 
-.login-field__hint {
-  color: #747b80;
-}
-
-.login-field__error {
-  color: var(--univalle-red-dark);
-}
-
-.login-password-wrap {
-  position: relative;
-}
-
-.login-password-wrap input {
-  padding-right: 88px;
-}
-
-.login-password-toggle {
-  position: absolute;
-  top: 50%;
-  right: 9px;
-  min-height: 32px;
-  padding: 0 7px;
-  transform: translateY(-50%);
-  border: 0;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--shop-blue);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.login-password-toggle:hover {
-  background: #1a73e80c;
-}
-
-.login-submit {
-  min-height: 47px;
-  margin-top: 5px;
-  border: 0;
-  border-radius: 4px;
-  background: var(--univalle-red);
-  box-shadow: 0 2px 4px #2c42522e;
-  color: var(--univalle-white);
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  transition: background 150ms ease, transform 150ms ease;
-}
-
-.login-submit:hover {
-  transform: translateY(-1px);
-  background: var(--univalle-red-dark);
-}
-
-.login-submit:active {
-  transform: translateY(0);
-}
-
-.login-status {
-  margin: -5px 0 0;
-  padding: 11px 12px;
-  border-left: 3px solid var(--shop-blue);
-  background: #1a73e80c;
-  color: var(--univalle-gray);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.login-status--error {
-  border-left-color: var(--univalle-red);
-  background: #cd1f320d;
-}
-
-.login-status--success {
-  border-left-color: var(--shop-green);
-  background: #20b61b12;
-}
-
-.login-submit:disabled {
-  cursor: wait;
-  opacity: 0.75;
-}
-
-.login-divider {
+/* Metrics Bar */
+.uv-login-metrics-bar {
   display: flex;
   align-items: center;
-  gap: 13px;
-  margin: 23px 0 13px;
-  color: #788087;
-  font: 10px/1.4 var(--mono);
-  text-transform: uppercase;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 22px;
+  background-color: var(--uv-surface);
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-radius-lg);
+  box-shadow: var(--uv-shadow-xs);
 }
 
-.login-divider::before,
-.login-divider::after {
-  height: 1px;
-  flex: 1;
-  background: #e1e4e6;
-  content: '';
+.uv-login-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.login-note {
-  margin: 0;
-  color: #68737a;
-  font-size: 11px;
-  line-height: 1.6;
-  text-align: center;
-}
-
-.login-footer {
-  margin-top: 18px;
-  color: #000000;
-  font: 10px/1.5 var(--mono);
-}
-
-.login-footer span {
-  padding: 0 5px;
+.uv-login-metric strong {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
   color: var(--univalle-red);
 }
 
-@keyframes login-arrive {
-  from { opacity: 0; transform: translateY(9px); }
-  to { opacity: 1; transform: translateY(0); }
+.uv-login-metric span {
+  font-size: 11.5px;
+  color: var(--uv-text-muted);
+  font-weight: 500;
 }
 
-@media (max-width: 480px) {
-  .login-page {
-    align-content: start;
-    padding: 20px 14px;
-  }
-
-  .login-panel {
-    margin-top: 3vh;
-    padding: 28px 22px 25px;
-  }
+.uv-login-metric-divider {
+  width: 1px;
+  height: 28px;
+  background-color: var(--uv-border);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .login-panel,
-  .login-submit {
-    animation: none;
-    transition: none;
-  }
+/* Right Login Form Panel */
+.uv-login-panel {
+  padding: 40px 42px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: var(--uv-surface);
+  border: 1px solid var(--uv-border);
+  border-top: 4px solid var(--univalle-red);
+  border-radius: var(--uv-radius-xl);
+  box-shadow: var(--uv-shadow-lg);
 }
 
-.login-mode-switch {
-  display: block;
-  min-height: 40px;
-  margin: 8px auto 0;
-  padding: 0 10px;
-  border: 0;
+.uv-login-panel-header {
+  margin-bottom: 22px;
+}
+
+.uv-login-seal-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.uv-login-panel-logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: var(--uv-radius-sm);
+  box-shadow: var(--uv-shadow-xs);
+}
+
+.uv-login-eyebrow {
+  margin: 0 0 2px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--univalle-red);
+  text-transform: uppercase;
+}
+
+.uv-login-panel-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 800;
+  color: var(--uv-text-primary);
+  letter-spacing: -0.025em;
+}
+
+.uv-login-subtitle {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--uv-text-muted);
+}
+
+/* Mode Switcher Tabs */
+.uv-login-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 22px;
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-radius-md);
+  background-color: var(--uv-surface-subtle);
+  padding: 4px;
+}
+
+.uv-login-tab {
+  height: 38px;
+  border: 1px solid transparent;
+  border-radius: var(--uv-radius-sm);
   background: transparent;
-  color: var(--shop-blue);
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--uv-text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.18s ease;
 }
 
-.login-mode-switch:hover {
+.uv-login-tab:hover {
+  color: var(--uv-text-primary);
+}
+
+.uv-login-tab.active {
+  background-color: var(--uv-surface);
+  color: var(--univalle-red);
+  border-color: var(--uv-border);
+  box-shadow: var(--uv-shadow-xs);
+}
+
+/* Form Fields */
+.uv-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.uv-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.uv-login-field label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--uv-text-secondary);
+  text-transform: uppercase;
+}
+
+.uv-login-field input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--uv-border-strong);
+  border-radius: var(--uv-radius-sm);
+  background-color: var(--uv-surface);
+  color: var(--uv-text-primary);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.uv-login-field input::placeholder {
+  color: var(--uv-text-subtle);
+}
+
+.uv-login-field input:focus {
+  border-color: var(--univalle-red);
+  box-shadow: 0 0 0 3px rgba(205, 31, 50, 0.12);
+}
+
+.uv-login-field input[aria-invalid='true'] {
+  border-color: var(--univalle-red);
+  background-color: var(--univalle-red-soft);
+}
+
+.uv-login-field-hint {
+  font-size: 11.5px;
+  color: var(--uv-text-muted);
+}
+
+.uv-login-field-error {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--univalle-red);
+}
+
+.uv-login-password-wrap {
+  position: relative;
+}
+
+.uv-login-password-wrap input {
+  padding-right: 92px;
+}
+
+.uv-login-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-radius-xs);
+  background: var(--uv-surface-muted);
+  color: var(--uv-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.uv-login-password-toggle:hover {
+  border-color: var(--univalle-red);
+  color: var(--univalle-red);
+  background-color: var(--univalle-red-soft);
+}
+
+/* Primary Submit Button */
+.uv-login-submit {
+  height: 48px;
+  margin-top: 4px;
+  border: none;
+  border-radius: var(--uv-radius-sm);
+  background-color: var(--univalle-red);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: var(--uv-shadow-red);
+  transition: background-color 0.18s ease, transform 0.15s ease;
+}
+
+.uv-login-submit:hover:not(:disabled) {
+  background-color: var(--univalle-red-hover);
+  transform: translateY(-1px);
+}
+
+.uv-login-submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.uv-login-status {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--uv-radius-sm);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  border: 1px solid var(--uv-border);
+  border-left-width: 4px;
+}
+
+.uv-login-status--error {
+  border-color: var(--univalle-red-border);
+  border-left-color: var(--univalle-red);
+  background-color: var(--univalle-red-soft);
+  color: var(--univalle-red-dark);
+}
+
+.uv-login-status--success {
+  border-color: var(--uv-success-border);
+  border-left-color: var(--uv-success);
+  background-color: var(--uv-success-bg);
+  color: var(--uv-success);
+}
+
+.uv-login-bottom-switch {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--uv-border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--uv-text-muted);
+}
+
+.uv-login-mode-switch {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--univalle-red);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.uv-login-mode-switch:hover {
   text-decoration: underline;
+}
+
+/* Bottom Flowing Steps Strip */
+.uv-login-steps-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  padding-top: 12px;
+}
+
+.uv-login-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 22px;
+  background-color: var(--uv-surface);
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-radius-lg);
+  box-shadow: var(--uv-shadow-xs);
+}
+
+.uv-login-step-num {
+  padding: 4px 9px;
+  border-radius: var(--uv-radius-xs);
+  background-color: var(--univalle-red-soft);
+  border: 1px solid var(--univalle-red-border);
+  color: var(--univalle-red);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.uv-login-step-item strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--uv-text-primary);
+  margin-bottom: 4px;
+}
+
+.uv-login-step-item p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--uv-text-muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 980px) {
+  .uv-login-topbar-pills {
+    display: none;
+  }
+
+  .uv-login-hero-container {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .uv-login-steps-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .uv-login-bento-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .uv-login-panel {
+    padding: 30px 22px;
+  }
+
+  .uv-login-metric-divider {
+    display: none;
+  }
 }

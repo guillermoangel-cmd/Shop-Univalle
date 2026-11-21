@@ -1,3 +1,5 @@
+export const DEFAULT_PRODUCT_IMAGE = '/assets/default_products/producto_default.webp'
+
 export interface Product {
   id: string
   name: string

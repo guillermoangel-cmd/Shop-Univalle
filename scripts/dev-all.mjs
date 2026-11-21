@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { resolve } from 'node:path';
@@ -146,6 +146,7 @@ const services = [
 
 const resetColor = '\x1b[0m';
 const children = [];
+let isShuttingDown = false;
 
 console.log('\n========================================================');
 console.log(' 🚀 Iniciando Univalle Shop (Todos los servicios en 1 terminal)');
@@ -196,7 +197,7 @@ function prefixLines(tag, color, stream, target) {
   });
 }
 
-for (const svc of services) {
+function launchService(svc) {
   const child = spawn(svc.command, svc.args, {
     cwd: svc.cwd,
     env: svc.env,
@@ -208,21 +209,36 @@ for (const svc of services) {
   prefixLines(svc.name, svc.color, child.stderr, process.stderr);
 
   child.on('exit', (code) => {
-    if (code !== null && code !== 0) {
+    if (!isShuttingDown && code !== null && code !== 0) {
       console.error(
-        `${svc.color}[${svc.name}]${resetColor} finalizó con código ${code}`,
+        `${svc.color}[${svc.name}]${resetColor} finalizó con código ${code}. Reiniciando automáticamente en 1.5s...`,
       );
+      setTimeout(() => {
+        if (!isShuttingDown) {
+          launchService(svc);
+        }
+      }, 1500);
     }
   });
 
   children.push(child);
 }
 
+for (const svc of services) {
+  launchService(svc);
+}
+
 function shutdown() {
+  isShuttingDown = true;
   console.log('\n🛑 Deteniendo todos los servicios de Univalle Shop...');
   for (const child of children) {
+    if (!child.pid) continue;
     try {
-      child.kill('SIGTERM');
+      if (process.platform === 'win32') {
+        execSync(`taskkill /PID ${child.pid} /T /F`, { stdio: 'ignore' });
+      } else {
+        child.kill('SIGTERM');
+      }
     } catch {
       // ignore
     }

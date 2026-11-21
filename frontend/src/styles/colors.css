@@ -1,19 +1,60 @@
 :root {
+  /* Identidad Institucional Universidad del Valle */
   --univalle-red: #cd1f32;
-  --univalle-red-dark: #9f1727;
-  --univalle-gray: #2c4252;
-  --univalle-white: #ffffff;
-  --univalle-black: #171717;
-  --shop-green: #20b61b;
-  --shop-blue: #1a73e8;
+  --univalle-red-hover: #b3192a;
+  --univalle-red-dark: #8e1220;
+  --univalle-red-soft: #fff5f6;
+  --univalle-red-tint: #fdecef;
+  --univalle-red-border: #f5c2c7;
 
-  --paper: #f4f3f0;
-  --ink: var(--univalle-black);
-  --forest: #174c3c;
-  --leaf: #5b9275;
-  --sun: #f1c84f;
+  /* Superficies y Fondos */
+  --uv-bg: #f8f9fb;
+  --uv-surface: #ffffff;
+  --uv-surface-subtle: #f3f4f6;
+  --uv-surface-muted: #f9fafb;
+  --univalle-white: #ffffff;
+
+  /* Tipografía y Contraste */
+  --univalle-black: #111827;
+  --uv-text-primary: #111827;
+  --uv-text-secondary: #374151;
+  --uv-text-muted: #6b7280;
+  --uv-text-subtle: #9ca3af;
+  --univalle-gray: #374151;
+
+  /* Bordes y Divisores */
+  --uv-border: #e5e7eb;
+  --uv-border-light: #f0f2f5;
+  --uv-border-strong: #d1d5db;
+
+  /* Estados Semánticos */
+  --uv-success: #15803d;
+  --uv-success-bg: #f0fdf4;
+  --uv-success-border: #bbf7d0;
+  --uv-warning: #b45309;
+  --uv-warning-bg: #fffbeb;
+  --shop-green: #15803d;
+  --shop-blue: #1d4ed8;
+
+  /* Radios y Sombras del Sistema de Diseño */
+  --uv-radius-xs: 6px;
+  --uv-radius-sm: 8px;
+  --uv-radius-md: 12px;
+  --uv-radius-lg: 16px;
+  --uv-radius-xl: 20px;
+  --uv-radius-pill: 9999px;
+
+  --uv-shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --uv-shadow-sm: 0 2px 8px -2px rgba(17, 24, 39, 0.06), 0 1px 3px -1px rgba(17, 24, 39, 0.04);
+  --uv-shadow-md: 0 10px 24px -6px rgba(17, 24, 39, 0.08), 0 4px 10px -4px rgba(17, 24, 39, 0.04);
+  --uv-shadow-lg: 0 20px 44px -10px rgba(17, 24, 39, 0.14), 0 8px 18px -6px rgba(17, 24, 39, 0.06);
+  --uv-shadow-red: 0 6px 16px -4px rgba(205, 31, 50, 0.28);
+
+  /* Alias legados para compatibilidad */
+  --paper: var(--uv-bg);
+  --ink: var(--uv-text-primary);
   --terracotta: var(--univalle-red);
-  --muted: #6f766f;
-  --line: #d8d8ca;
-  --error-server: #cd1f32;
+  --muted: var(--uv-text-muted);
+  --line: var(--uv-border);
+  --error-server: var(--univalle-red);
 }
